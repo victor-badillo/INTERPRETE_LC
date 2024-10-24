@@ -13,9 +13,12 @@
 %token PRED
 %token ISZERO
 %token LET
+%token LETREC
 %token IN
+%token CONCAT
 %token BOOL
 %token NAT
+%token STRING (*Token de string*)
 
 %token LPAREN
 %token RPAREN
@@ -28,6 +31,7 @@
 
 %token <int> INTV
 %token <string> IDV
+%token <string> STRINGV
 
 %start s
 %type <Lambda.term> s
@@ -47,6 +51,8 @@ term :
       { TmAbs ($2, $4, $6) }
   | LET IDV EQ term IN term
       { TmLetIn ($2, $4, $6) }
+  | LETREC IDV COLON ty EQ term IN term
+      { TmLetIn ($2, TmFix (TmAbs ($2, $4, $6)), $8) }
 
 appTerm :
     atomicTerm
@@ -57,6 +63,8 @@ appTerm :
       { TmPred $2 }
   | ISZERO atomicTerm
       { TmIsZero $2 }
+  | CONCAT atomicTerm atomicTerm
+      { TmConcat ($2, $3) }
   | appTerm atomicTerm
       { TmApp ($1, $2) }
 
@@ -74,6 +82,8 @@ atomicTerm :
             0 -> TmZero
           | n -> TmSucc (f (n-1))
         in f $1 }
+  | STRINGV
+      { TmString $1 }
 
 ty :
     atomicTy
@@ -88,4 +98,6 @@ atomicTy :
       { TyBool }
   | NAT
       { TyNat }
+  | STRING
+      { TyString }
 

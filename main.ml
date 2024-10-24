@@ -17,7 +17,7 @@ let top_level_loop () =
     print_string ">> ";
     flush stdout;
     try
-      let input = read_multiline () in  (*Cambiamos a lectura de múltiples líneas*)
+      let input = read_multiline () in  (*Leer multiples lineas*)
       let tm = s token (from_string input) in
       let tyTm = typeof ctx tm in
       print_endline (string_of_term (eval tm) ^ " : " ^ string_of_ty tyTm);
