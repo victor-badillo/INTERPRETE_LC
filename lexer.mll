@@ -5,7 +5,7 @@
 }
 
 rule token = parse
-    [' ' '\t' '\n']  { token lexbuf } (*Añadido \n para ignorar saltos de linea*)
+    [' ' '\t']  { token lexbuf }
   | "lambda"    { LAMBDA }
   | "L"         { LAMBDA }
   | "true"      { TRUE }
