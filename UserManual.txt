@@ -7,6 +7,16 @@ AUTHOR: Víctor Nathanael Badillo Aldama
 Introduction:
     This is user manual purpose is to ilustrate the user with some examples the new developed functionalities.
     
+1.1 Multiline expressions.
+
+1.2 More complete "Pretty-printer".
+    To implement this section, a modification was first made in main.ml to return the type string before the term string. 
+    After this small change, lambda.ml was specifically modified in the string_of_term function. 
+    This function was subdivided, creating a cascade of functions that call each other according to the expression encountered, 
+    adding brackets only when required and removing any excess brackets. The subfunctions created are string_of_appTerm and string_of_atomicTerm. 
+    Additionally, excess brackets were removed in string_of_ty.
+
+
 
 TECNIC MANUAL
 
