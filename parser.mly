@@ -14,6 +14,7 @@
 %token ISZERO
 %token LET
 %token LETREC
+%token FIX
 %token IN
 %token CONCAT
 %token BOOL
@@ -65,6 +66,8 @@ appTerm :
       { TmIsZero $2 }
   | CONCAT atomicTerm atomicTerm
       { TmConcat ($2, $3) }
+  | FIX atomicTerm
+      { TmFix $2 }
   | appTerm atomicTerm
       { TmApp ($1, $2) }
 
