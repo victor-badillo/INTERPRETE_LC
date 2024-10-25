@@ -5,10 +5,10 @@ open Lambda;;
 open Parser;;
 open Lexer;;
 
-(*Leer varias lineas uniendo con un espacio en blanco*)
+(*Recursive function used for reading multiples lines, joininig these ones with a blank space*)
 let rec read_multiline () =
   let line = read_line () in
-  if String.contains line ';' then line
+  if String.contains line ';' then line   (*Return input when double semicolon is found*)
   else line ^ " " ^ read_multiline ()
 
 let top_level_loop () =
@@ -17,11 +17,14 @@ let top_level_loop () =
     print_string ">> ";
     flush stdout;
     try
-      let input = read_multiline () in  (*Leer multiples lineas*)
-      let tm = s token (from_string input) in
-      let tyTm = typeof ctx tm in
-      print_endline (string_of_term (eval tm) ^ " : " ^ string_of_ty tyTm);
-      loop ctx
+      let input = read_multiline () in  (*Input from the user*)
+      let trimmed_input = String.trim input in  (*Remove blank spaces and newlines*)
+      if trimmed_input = ";;" then loop ctx     (*Empty input, only typed ";;" *)
+      else
+        let tm = s token (from_string input) in
+        let tyTm = typeof ctx tm in
+        print_endline (string_of_term (eval tm) ^ " : " ^ string_of_ty tyTm);
+        loop ctx
     with
        Lexical_error ->
          print_endline "lexical error";
