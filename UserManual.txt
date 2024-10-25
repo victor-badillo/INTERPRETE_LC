@@ -1,0 +1,20 @@
+USER MANUAL
+
+LAMBDA-CALCULUS INTERPRETER
+
+AUTHOR: Víctor Nathanael Badillo Aldama
+
+Introduction:
+    This is user manual purpose is to ilustrate the user with some examples the new developed functionalities.
+    
+
+TECNIC MANUAL
+
+LAMBDA-CALCULUS INTERPRETER
+
+AUTHOR: Víctor Nathanael Badillo Aldama
+
+Introduction:
+    This tecnic manual purpose is to explain what modules from the original implementation have been modified and what
+    kind of changes were done to obtain de the final implementation.
+    
