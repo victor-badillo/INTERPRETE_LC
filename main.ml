@@ -23,7 +23,7 @@ let top_level_loop () =
       else
         let tm = s token (from_string input) in
         let tyTm = typeof ctx tm in
-        print_endline (string_of_term (eval tm) ^ " : " ^ string_of_ty tyTm);
+        print_endline ("- : " ^ string_of_ty tyTm ^ " = " ^ string_of_term (eval tm));  (* First type and the term*)
         loop ctx
     with
        Lexical_error ->

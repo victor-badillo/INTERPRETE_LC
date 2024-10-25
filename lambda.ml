@@ -53,7 +53,7 @@ let rec string_of_ty ty = match ty with
   | TyNat ->
       "Nat"
   | TyArr (ty1, ty2) ->
-      "(" ^ string_of_ty ty1 ^ ")" ^ " -> " ^ "(" ^ string_of_ty ty2 ^ ")"
+      string_of_ty ty1 ^ " -> " ^ string_of_ty ty2
   | TyString ->
       "String"
 ;;
@@ -143,7 +143,7 @@ let rec typeof ctx tm = match tm with
 
 
 (* TERMS MANAGEMENT (EVALUATION) *)
-
+(*
 let rec string_of_term = function
     TmTrue ->
       "true"
@@ -180,6 +180,59 @@ let rec string_of_term = function
   | TmConcat (t1,t2) ->
       "concat " ^ "(" ^ string_of_term t1 ^ ")" ^ " " ^ "(" ^ string_of_term t2 ^ ")"
 ;;
+*)
+
+let rec string_of_term n = match n with
+  | TmAbs (s, tyS, t) ->
+      "lambda " ^ s ^ " : " ^ string_of_ty tyS ^ ". " ^ string_of_term t
+  | TmLetIn (s, t1, t2) ->
+      "let " ^ s ^ " = " ^ string_of_term t1 ^ " in " ^ string_of_term t2
+  | TmIf (t1,t2,t3) ->
+        "if " ^ string_of_term t1 ^ 
+        " then " ^ string_of_term t2 ^ 
+        " else " ^ string_of_term t3
+  | _ -> 
+        string_of_appTerm n
+
+
+and string_of_appTerm t = match t with
+  | TmApp (t1, t2) -> 
+      string_of_appTerm t1 ^ " " ^ string_of_appTerm t2
+  | TmSucc t -> 
+    let rec f n t' = match t' with
+          TmZero -> string_of_int n
+        | TmSucc s -> f (n+1) s
+        | _ -> "(succ " ^ string_of_atomicTerm t ^ ")"
+      in f 1 t
+  | TmPred t -> 
+      "(pred " ^ string_of_atomicTerm t ^ ")"
+  | TmIsZero t ->
+      "iszero " ^ string_of_atomicTerm t
+  | TmFix t ->
+      "fix " ^ string_of_atomicTerm t
+  | TmConcat (t1,t2) ->
+      "concat " ^ "(" ^ string_of_atomicTerm t1 ^ ")" ^ " " ^ "(" ^ string_of_atomicTerm t2 ^ ")"
+  | _ -> 
+      string_of_atomicTerm t
+
+
+and string_of_atomicTerm t = match t with
+  | TmVar s -> 
+      s
+  | TmString s ->
+      "\"" ^ s ^ "\""
+  | TmZero ->
+      "0"
+  | TmTrue ->
+      "true"
+  | TmFalse ->
+      "false"
+  | _ -> "(" ^ string_of_term t ^ ")"
+
+;;
+
+
+
 
 let rec ldif l1 l2 = match l1 with
     [] -> []
