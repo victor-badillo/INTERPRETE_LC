@@ -16,6 +16,10 @@ Introduction:
     adding brackets only when required and removing any excess brackets. The subfunctions created are string_of_appTerm and string_of_atomicTerm. 
     Additionally, excess brackets were removed in string_of_ty.
 
+    In order to obtain a good identation it is necessary to change the return value of string_of_term and directly print in the screen the string_of_term.
+    For simplicity me change the name of string_of_term to pretty_printer. Depending on the kind of term, we use a box to encapsulate a part of the output
+    and insert the apropiate identation. print_space() is used in order to break line or insert a white space.
+
 2.1 Fixed-point combinator
     ...
     In order to declare recursive functions and not recursive functions without the use of operator in, it is necessary to modify de parser and create
