@@ -1,4 +1,4 @@
-
+open Format
 (* TYPE DEFINITIONS *)
 
 type ty =
@@ -181,7 +181,7 @@ let rec string_of_term = function
       "concat " ^ "(" ^ string_of_term t1 ^ ")" ^ " " ^ "(" ^ string_of_term t2 ^ ")"
 ;;
 *)
-
+(*
 let rec string_of_term n = match n with
   | TmAbs (s, tyS, t) ->
       "lambda " ^ s ^ " : " ^ string_of_ty tyS ^ ". " ^ string_of_term t
@@ -230,8 +230,89 @@ and string_of_atomicTerm t = match t with
   | _ -> "(" ^ string_of_term t ^ ")"
 
 ;;
+*)
+
+let rec pretty_printer n = match n with
+  | TmAbs (s, tyS, t) ->
+      open_hvbox 1;
+      print_string ("lambda " ^ s ^ " : " ^ string_of_ty tyS ^ ".");
+      print_space();
+      pretty_printer t;
+      close_box ()
+  | TmLetIn (s, t1, t2) ->
+      open_hvbox 0;
+      print_string("let " ^ s ^ " = ");
+      pretty_printer t1;
+      print_string(" in ");
+      pretty_printer t2;
+      close_box ()
+  | TmIf (t1,t2,t3) ->
+      open_hvbox 1;
+      print_string("if ");
+      pretty_printer t1;
+      print_string(" then ");
+      pretty_printer t2;
+      print_space();
+      print_string("else ");
+      pretty_printer t3;
+      close_box ()
+  | _ -> 
+        string_of_appTerm n
 
 
+and string_of_appTerm t = match t with
+  | TmApp (t1, t2) -> 
+      string_of_appTerm t1;
+      print_string(" ");
+      string_of_appTerm t2
+      
+  | TmSucc t -> 
+    let rec f n t' = match t' with
+          TmZero -> print_string(string_of_int n)
+        | TmSucc s -> f (n+1) s
+        | _ -> print_string("(succ ");
+               string_of_atomicTerm t;
+               print_string(")")
+      in f 1 t
+  | TmPred t -> 
+      print_string("(pred ");
+      string_of_atomicTerm t;
+      print_string(")")
+  | TmIsZero t ->
+      print_string("iszero ");
+      string_of_atomicTerm t
+  | TmFix t ->
+      open_hvbox 0;
+      print_string("fix ");
+      string_of_atomicTerm t;
+      print_space();
+      close_box ()
+  | TmConcat (t1,t2) ->
+      print_string("concat (");
+      string_of_atomicTerm t1;
+      print_string(") (");
+      string_of_atomicTerm t2;
+      print_string(")")
+  | _ -> 
+      string_of_atomicTerm t
+
+
+and string_of_atomicTerm t = match t with
+  | TmVar s -> 
+      print_string(s)
+  | TmString s ->
+      print_string("\"" ^ s ^ "\"")
+  | TmZero ->
+      print_string("0")
+  | TmTrue ->
+      print_string("true")
+  | TmFalse ->
+      print_string("false")
+  | _ -> print_string("(");
+         pretty_printer t;
+         print_string(")")
+
+;;
 
 
 let rec ldif l1 l2 = match l1 with
