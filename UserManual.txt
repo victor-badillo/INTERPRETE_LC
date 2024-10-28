@@ -16,6 +16,11 @@ Introduction:
     adding brackets only when required and removing any excess brackets. The subfunctions created are string_of_appTerm and string_of_atomicTerm. 
     Additionally, excess brackets were removed in string_of_ty.
 
+2.1 Fixed-point combinator
+    ...
+    In order to declare recursive functions and not recursive functions without the use of operator in, it is necessary to modify de parser and create
+    a rule for this two cases. One rule for let was created in the 'term' rule and one other for letrec.
+
 
 
 TECNIC MANUAL

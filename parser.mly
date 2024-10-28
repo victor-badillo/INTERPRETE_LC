@@ -50,8 +50,12 @@ term :
       { TmIf ($2, $4, $6) }
   | LAMBDA IDV COLON ty DOT term
       { TmAbs ($2, $4, $6) }
+  | LET IDV EQ term
+      { TmLetIn ($2, $4, $4) }
   | LET IDV EQ term IN term
       { TmLetIn ($2, $4, $6) }
+  | LETREC IDV COLON ty EQ term
+      { TmLetIn ($2, TmFix (TmAbs ($2, $4, $6)), TmVar $2) } (* letrec without 'in' *)
   | LETREC IDV COLON ty EQ term IN term
       { TmLetIn ($2, TmFix (TmAbs ($2, $4, $6)), $8) }
 
