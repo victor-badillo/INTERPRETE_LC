@@ -6,9 +6,6 @@ type ty =
   | TyString (*Añadido tipo string*)
 ;;
 
-type context =
-  (string * ty) list
-;;
 
 type term =
     TmTrue
@@ -27,16 +24,38 @@ type term =
   | TmConcat of term * term (*Termino para concatenar string*)
 ;;
 
+type command = 
+    Eval of term
+  | Bind of string * term
+  | Quit
+;;
+
+type binding =
+  TyBind of ty
+  | TyTmBind of (ty * term)
+;;
+
+type context =
+  (string * binding) list
+;;
+
 val emptyctx : context;;
+val addtbinding : context -> string -> ty -> context;;
+val addvbinding : context -> string -> ty -> term -> context;;
+val gettbinding : context -> string -> ty;;
+val getvbinding : context -> string -> term;;
+(*
 val addbinding : context -> string -> ty -> context;;
 val getbinding : context -> string -> ty;;
+*)
 
 val string_of_ty : ty -> string;;
 exception Type_error of string;;
 val typeof : context -> term -> ty;;
 
-val pretty_printer : term -> unit;;
-(*val string_of_term : term -> string;;*)
+(*val pretty_printer : term -> unit;;*)
+val string_of_term : term -> string;;
 exception NoRuleApplies;;
-val eval : term -> term;;
+val eval : context -> term -> term;;
+val execute : context -> command -> context;;
 

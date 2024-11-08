@@ -24,6 +24,7 @@ rule token = parse
   | "Bool"      { BOOL }
   | "Nat"       { NAT }
   | "String"    { STRING }
+  | "quit"      { QUIT }
   | '('         { LPAREN }
   | ')'         { RPAREN }
   | '.'         { DOT }

@@ -20,6 +20,7 @@
 %token BOOL
 %token NAT
 %token STRING (*Token de string*)
+%token QUIT
 
 %token LPAREN
 %token RPAREN
@@ -35,13 +36,20 @@
 %token <string> STRINGV
 
 %start s
-%type <Lambda.term> s
+%type <Lambda.command> s
 
 %%
-
+(*
 s :
     term DOUBLE_SEMICOLON
-      { $1 }
+      { $1 }*)
+
+s: IDV EQ term DOUBLE_SEMICOLON
+        { Bind ($1, $3) }
+   | term DOUBLE_SEMICOLON
+        { Eval $1 }
+   | QUIT DOUBLE_SEMICOLON  (*Puso EOF*)
+        { Quit }
 
 term :
     appTerm

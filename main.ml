@@ -20,7 +20,7 @@ let top_level_loop () =
       let input = read_multiline () in  (*Input from the user*)
       let trimmed_input = String.trim input in  (*Remove blank spaces and newlines*)
       if trimmed_input = ";;" then loop ctx     (*Empty input, only typed ";;" *)
-      else
+      else(*
         let tm = s token (from_string input) in
         let tyTm = typeof ctx tm in
         (*print_endline ("- : " ^ string_of_ty tyTm ^ " = " ^ string_of_term (eval tm)); *) (* First type and the term*)
@@ -32,6 +32,9 @@ let top_level_loop () =
         Format.print_flush(); (*Clean boxes*)
         print_newline();
         loop ctx
+        *)
+        let c = s token (from_string (input)) in 
+         loop (execute ctx c)
     with
        Lexical_error ->
          print_endline "lexical error";
