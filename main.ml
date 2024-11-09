@@ -33,8 +33,8 @@ let top_level_loop () =
         print_newline();
         loop ctx
         *)
-        let c = s token (from_string (input)) in 
-         loop (execute ctx c)
+        let c = s token (from_string (input)) in  (* get the command from the input *)
+        loop (execute ctx c)
     with
        Lexical_error ->
          print_endline "lexical error";

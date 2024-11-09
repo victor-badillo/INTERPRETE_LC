@@ -214,7 +214,7 @@ let rec string_of_term = function
       "concat " ^ "(" ^ string_of_term t1 ^ ")" ^ " " ^ "(" ^ string_of_term t2 ^ ")"
 ;;
 *)
-
+(*
 let rec string_of_term n = match n with
   | TmAbs (s, tyS, t) ->
       "lambda " ^ s ^ " : " ^ string_of_ty tyS ^ ". " ^ string_of_term t
@@ -263,8 +263,8 @@ and string_of_atomicTerm t = match t with
   | _ -> "(" ^ string_of_term t ^ ")"
 
 ;;
+*)
 
-(*
 let rec pretty_printer n = match n with
   | TmAbs (s, tyS, t) ->
       open_hvbox 1;
@@ -346,7 +346,7 @@ and string_of_atomicTerm t = match t with
          print_string(")")
 
 ;;
-*)
+
 
 let rec ldif l1 l2 = match l1 with
     [] -> []
@@ -564,6 +564,7 @@ let rec eval ctx tm =
     NoRuleApplies -> apply_ctx ctx tm
 ;;
 
+(*
 let execute ctx = function 
   Eval tm ->
     let tyTm = typeof ctx tm in
@@ -575,6 +576,49 @@ let execute ctx = function
     let tyTm = typeof ctx tm in
     let tm' = eval ctx tm in
     print_endline (s ^ " : " ^ string_of_ty tyTm ^ " = " ^ string_of_term tm');
+    addvbinding ctx s tyTm tm'
+  | Quit ->
+    raise End_of_file
+*)
+
+
+(*
+        let tm = s token (from_string input) in
+        let tyTm = typeof ctx tm in
+        (*print_endline ("- : " ^ string_of_ty tyTm ^ " = " ^ string_of_term (eval tm)); *) (* First type and the term*)
+        Format.open_hvbox 0;
+        print_string ("- : " ^ string_of_ty tyTm ^ " =");
+        Format.print_space();
+        pretty_printer (eval tm);
+        Format.close_box ();
+        Format.print_flush(); (*Clean boxes*)
+        print_newline();
+        loop ctx
+        *)
+
+let execute ctx = function 
+  Eval tm ->
+    let tyTm = typeof ctx tm in
+    let tm' = eval ctx tm in
+    Format.open_hvbox 0;
+    print_string ("- : " ^ string_of_ty tyTm ^ " =");
+    Format.print_space();
+    pretty_printer (tm');
+    Format.close_box ();
+    Format.print_flush(); (*Clean boxes*)
+    print_newline();
+    ctx
+
+  | Bind (s, tm) -> 
+    let tyTm = typeof ctx tm in
+    let tm' = eval ctx tm in
+    Format.open_hvbox 0;
+    print_string (s ^ " : " ^ string_of_ty tyTm ^ " =");
+    Format.print_space();
+    pretty_printer (tm');
+    Format.close_box ();
+    Format.print_flush(); (*Clean boxes*)
+    print_newline();
     addvbinding ctx s tyTm tm'
   | Quit ->
     raise End_of_file

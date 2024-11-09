@@ -53,8 +53,8 @@ val string_of_ty : ty -> string;;
 exception Type_error of string;;
 val typeof : context -> term -> ty;;
 
-(*val pretty_printer : term -> unit;;*)
-val string_of_term : term -> string;;
+val pretty_printer : term -> unit;;
+(*val string_of_term : term -> string;;*)
 exception NoRuleApplies;;
 val eval : context -> term -> term;;
 val execute : context -> command -> context;;
