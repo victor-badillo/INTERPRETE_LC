@@ -33,6 +33,7 @@
 
 %token <int> INTV
 %token <string> IDV
+%token <string> IDT
 %token <string> STRINGV
 
 %start s
@@ -46,6 +47,8 @@ s :
 
 s: IDV EQ term DOUBLE_SEMICOLON
         { Bind ($1, $3) }
+   | IDT EQ ty DOUBLE_SEMICOLON
+        { TBind ($1, $3) }
    | term DOUBLE_SEMICOLON
         { Eval $1 }
    | QUIT DOUBLE_SEMICOLON  (*Puso EOF*)
@@ -115,4 +118,6 @@ atomicTy :
       { TyNat }
   | STRING
       { TyString }
+  | IDT
+      { TyVar $1 }
 

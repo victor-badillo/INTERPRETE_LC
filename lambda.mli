@@ -4,6 +4,7 @@ type ty =
   | TyNat
   | TyArr of ty * ty
   | TyString (*Añadido tipo string*)
+  | TyVar of string
 ;;
 
 
@@ -27,6 +28,7 @@ type term =
 type command = 
     Eval of term
   | Bind of string * term
+  | TBind of string * ty
   | Quit
 ;;
 

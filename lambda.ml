@@ -6,6 +6,7 @@ type ty =
   | TyNat
   | TyArr of ty * ty
   | TyString (*Añadido tipo string**)
+  | TyVar of string
 ;;
 
 
@@ -30,6 +31,7 @@ type term =
 type command = 
     Eval of term
   | Bind of string * term
+  | TBind of string * ty
   | Quit
 ;;
 
@@ -89,11 +91,51 @@ let rec string_of_ty ty = match ty with
       string_of_ty ty1 ^ " -> " ^ string_of_ty ty2
   | TyString ->
       "String"
+  | TyVar s ->
+      s
 ;;
 
 exception Type_error of string
 ;;
 
+
+let rec typeofTy ctx ty =
+  match ty with
+      TyBool ->
+        TyBool
+    | TyNat ->
+        TyNat
+    | TyString ->
+        TyString
+    | TyArr (ty1, ty2) ->
+        TyArr(typeofTy ctx ty1, typeofTy ctx ty2)
+    | TyVar s ->
+        let newType = gettbinding ctx s in
+        typeofTy ctx newType
+;;
+
+(*
+let rec getBasicTy ctx ty = 
+  match ty with
+    TyBool ->
+      TyBool
+  | TyNat ->
+      TyNat
+  | TyString ->
+      TyString
+  | TyArr (ty1, ty2) ->
+      TyArr(ty1, ty2)
+  | _ -> raise (Type_error "not valid type")
+;;
+
+let rec typeofTy ctx ty =
+  match ty with
+     TyVar s ->
+        let newType = gettbinding ctx s in
+        typeofTy ctx newType
+    | _ -> getBasicTy ctx ty
+;;
+*)
 let rec typeof ctx tm = match tm with
     (* T-True *)
     TmTrue ->
@@ -138,9 +180,10 @@ let rec typeof ctx tm = match tm with
 
     (* T-Abs *)
   | TmAbs (x, tyT1, t2) ->
-      let ctx' = addtbinding ctx x tyT1 in
+      let base_tyT1 = typeofTy ctx tyT1 in
+      let ctx' = addtbinding ctx x base_tyT1 in
       let tyT2 = typeof ctx' t2 in
-      TyArr (tyT1, tyT2)
+      TyArr (base_tyT1, tyT2)
 
     (* T-App *)
   | TmApp (t1, t2) ->
@@ -620,5 +663,15 @@ let execute ctx = function
     Format.print_flush(); (*Clean boxes*)
     print_newline();
     addvbinding ctx s tyTm tm'
+  | TBind (s, ty) ->
+    let bty = typeofTy ctx ty in
+    Format.open_hvbox 0;
+    print_string ("type " ^ s ^ " =");
+    Format.print_space();
+    print_string(string_of_ty bty);
+    Format.close_box ();
+    Format.print_flush(); (*Clean boxes*)
+    print_newline();
+    addtbinding ctx s bty
   | Quit ->
     raise End_of_file
