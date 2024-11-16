@@ -35,7 +35,9 @@ Introduction:
     in tuples uses number for referecing terms but this is done for reusing it for records later on.
 
 2.5 Records
-    
+
+2.6 Variants
+
 
 
 

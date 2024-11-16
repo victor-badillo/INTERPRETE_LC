@@ -16,3 +16,20 @@ let id_nat = L x:Nat. x in id_nat 5
 let x = 5 in let id_nat = L x:Nat. x in id_nat x
 let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in let sumaux = lambda f. (lambda n. (lambda m. if (iszero n) then m else succ (f (pred n) m))) in let sum = fix sumaux in sum 21 34
 let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in let sumaux = lambda f. (lambda n. (lambda m. if (iszero n) then m else succ (f (pred n) m))) in let sum = fix sumaux in let prodaux = lambda f. (lambda n. (lambda m. if (iszero m) then 0 else sum n (f n (pred m)))) in let prod = fix prodaux in prod 12 5
+letrec sum : Nat -> Nat -> Nat =
+        lambda n: Nat. lambda m : Nat. if iszero n then m
+              else succ (sum (pred n) m) in
+              letrec fib: Nat -> Nat =
+                       lambda n : Nat. if iszero n then 0 else if iszero (pred n) then 1
+                             else sum(fib (pred (pred n))) (fib (pred n)) in
+              fib 5;;
+letrec sum : Nat -> Nat -> Nat =
+     lambda n : Nat. lambda m : Nat. if iszero n then m
+         else succ (sum (pred n) m) in
+         letrec prod : Nat -> Nat -> Nat =
+              lambda n: Nat. lambda m : Nat. if iszero n then 0
+                  else sum (prod (pred n) m) m in
+                  letrec fac: Nat -> Nat =
+                       lambda n : Nat. if iszero n then 1
+                           else prod n (fac (pred n))
+                   in fac 5;;
