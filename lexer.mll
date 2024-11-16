@@ -25,15 +25,22 @@ rule token = parse
   | "Nat"       { NAT }
   | "String"    { STRING }
   | "quit"      { QUIT }
+  | "as"        { AS }    (*Variants*)
+  | "case"      { CASE }  (*Variants*)
+  | "of"        { OF }    (*Variants*)
+  | "|"         { OPT }   (*Variants*)
   | '('         { LPAREN }
   | ')'         { RPAREN }
   | '{'         { LCURLY }  (*Register opening curly bracket*)
   | '}'         { RCURLY }  (*Register opening curly bracket*)
+  | '<'         { LARROW }  (*Variants*)
+  | '>'         { RARROW }  (*Variants*)
   | ','         { COMMA }   (*Register commas, used for tuples, records and variants*)
   | '.'         { DOT }
   | '='         { EQ }
   | ':'         { COLON }
   | "->"        { ARROW }
+  | "=>"        { STRONGARROW }  (*Variants*)
   | ['0'-'9']+  { INTV (int_of_string (Lexing.lexeme lexbuf)) }
   | ['a'-'z']['a'-'z' '_' '0'-'9']*
                 { IDV (Lexing.lexeme lexbuf) }

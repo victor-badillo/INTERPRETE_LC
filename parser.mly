@@ -21,18 +21,25 @@
 %token NAT
 %token STRING (*Token de string*)
 %token QUIT
+%token AS       (*Variants*)
+%token CASE     (*Variants*)
+%token OF       (*Variants*)
 
 %token LPAREN
 %token RPAREN
 %token LCURLY
 %token RCURLY
+%token LARROW
+%token RARROW
 %token COMMA
 %token DOT
 %token EQ
 %token COLON
 %token ARROW
+%token STRONGARROW
 %token EOF
 %token DOUBLE_SEMICOLON     (*Token final de expresion*)
+%token OPT                  (*Variants*)
 
 %token <int> INTV
 %token <string> IDV
