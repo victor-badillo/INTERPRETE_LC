@@ -8,6 +8,7 @@ type ty =
   | TyString (*Añadido tipo string**)
   | TyVar of string
   | TyTuple of ty list  (*type for tuples*)
+  | TyRecord of (string * ty) list  (*type for records*)
 ;;
 
 
@@ -29,6 +30,7 @@ type term =
   | TmConcat of term * term (*Añadido tipo de concat*)
   | TmTuple of term list  (*Tuples*)
   | TmProj of term * string (*Projection*)
+  | TmRecord of (string * term) list  (*Records*)
 ;;
 
 type command = 
@@ -102,6 +104,13 @@ let rec string_of_ty ty = match ty with
           h :: [] -> string_of_ty h
         | h :: t -> (string_of_ty h ^ ", ") ^ aux t
         | [] -> raise (Invalid_argument "not valid empty tuple") 
+    in "{" ^ aux ty ^ "}"
+  | TyRecord ty ->    (*Get key-value for every pair*)
+    let rec aux l = 
+      match l with
+          (i, h) :: [] -> i ^ " : " ^ string_of_ty h
+        | (i, h) :: t -> (i ^ " : " ^ string_of_ty h ^ ", ") ^ aux t
+        | [] -> ""
     in "{" ^ aux ty ^ "}"
 ;;
 
@@ -229,12 +238,19 @@ let rec typeof ctx tm = match tm with
     (* T-Tuple *)
   | TmTuple t1 ->
       TyTuple (List.map (typeof ctx) t1)
+      (* T-Record *)
+  | TmRecord t1 ->  (*get keys, get the values and for this list apply typeof for each one, then combine resulting list with keys*)
+        TyRecord (List.combine (List.map fst t1) (List.map (typeof ctx) (List.map snd t1)))
       (* T-Proj *)
   | TmProj (t1,s) ->
       match typeof ctx t1 with
            TyTuple l -> (try List.nth l (int_of_string s -1) with
                         | _ -> raise (Type_error ("label " ^ s  ^ " not found"))) (*Label without any value*)
+          | TyRecord l -> (try List.assoc s l with
+                        | _ -> raise (Type_error ("label " ^ s  ^ " not found"))) (*label without any value*)
           | _ -> raise (Type_error "tuple type expected")
+        (* T-Record *)
+  
 ;;
 
 
@@ -416,6 +432,12 @@ and string_of_atomicTerm t = match t with
         pretty_printer t;
         print_string(".");
         print_string(s)
+  | TmRecord s ->   (*prints every key next to an equal symbol assigning its value. Separated by commas*)
+      let rec aux = function
+          [] -> print_string("")
+        | (i, h) :: [] -> print_string(i); print_string(" = "); pretty_printer h
+        | (i, h) :: t -> print_string(i); print_string(" = "); pretty_printer h; print_string(", ");aux t
+      in print_string("{"); aux s; print_string("}")
   | _ -> print_string("(");
          pretty_printer t;
          print_string(")")
@@ -469,8 +491,16 @@ let rec free_vars tm = match tm with
         | h :: t -> lunion (free_vars h) (aux t)
         | [] -> []
     in aux t
+  | TmRecord t -> (* for every pair in the record get free vars and make union of all*)
+    let rec aux l =
+      match l with
+          (i, h) :: [] -> free_vars h
+        | (i, h) :: t -> lunion (free_vars h) (aux t)
+        | [] -> []
+    in aux t
   | TmProj (t, _) ->  (* free vars from proj come from de the term*)
       free_vars t 
+  
 ;;
 
 let rec fresh_name x l =
@@ -518,6 +548,8 @@ let rec subst x s tm = match tm with
       TmConcat (subst x s t1, subst x s t2)
   | TmTuple t ->
       TmTuple (List.map (subst x s) t)  (* apply subs to every term in the tuple*)
+  | TmRecord t ->
+      TmRecord (List.combine (List.map fst t) (List.map (subst x s) (List.map snd t))) (*get keys, get the values and for this list apply subst for each one, then combine resulting list with keys*)
   | TmProj (t1, t2) ->
       TmProj (subst x s t1, t2)
 ;;
@@ -534,6 +566,7 @@ let rec isval tm = match tm with
   | TmAbs _ -> true
   | TmString _ -> true
   | TmTuple l -> List.for_all (fun t -> isval t) l  (* check if every element in tuple is valid*)
+  | TmRecord l -> List.for_all (fun t -> isval t) (List.map snd l)  (* check if every value in each pair in tuple is valid*)
   | t when isnumericval t -> true
   | _ -> false
 ;;
@@ -643,9 +676,19 @@ let rec eval1 ctx tm = match tm with
         | h :: t -> let h' = eval1 ctx h in h'::t
         | [] -> raise NoRuleApplies
       in TmTuple (aux l)
+      (* E-Record *)
+  | TmRecord l -> (*evaluate record*)
+      let rec aux = function
+          (key, h) :: t when isval h -> let t' = aux t in (key, h) :: t'
+        | (key, h) :: t -> let h' = eval1 ctx h in (key, h') :: t
+        | [] -> raise NoRuleApplies
+      in TmRecord (aux l)
      (* E-Proj-Tuple *)
   | TmProj (TmTuple l as v, s) when isval v ->  (*evaluate nth element from tuple*)
       List.nth l (int_of_string s - 1)
+     (* E-Proj-Record *)
+  | TmProj (TmRecord l as v, s) when isval v -> (**)
+      List.assoc s l
       (* E-Proj *)
   | TmProj (t, s) ->
       let t' = eval1 ctx t in TmProj (t', s)

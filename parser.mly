@@ -92,6 +92,8 @@ appTerm :
 indexTerm :
   | indexTerm DOT INTV                      (*proj with numbers*)
       { TmProj ($1, string_of_int $3) }
+  | indexTerm DOT IDV
+      { TmProj ($1, $3) } 
   | atomicTerm
       { $1 } 
 
@@ -114,6 +116,8 @@ atomicTerm :
       { TmString $1 }
   | LCURLY tupleTerm RCURLY
       { TmTuple $2 }
+  | LCURLY recordTerm RCURLY
+      { TmRecord $2 }
 
 ty :
     atomicTy
@@ -132,9 +136,25 @@ atomicTy :
       { TyString }
   | IDT
       { TyVar $1 }
+  | LCURLY recordTy RCURLY
+      { TyRecord $2 }
+
+recordTy:
+    { [] }
+  | IDV COLON ty
+      { [($1,$3)] }
+  | IDV COLON ty COMMA recordTy
+      { ($1,$3) :: $5 }
 
 tupleTerm : (* save terms from tuple in a list, not valid empty tuple*)
     term
       { [$1] }
   | term COMMA tupleTerm
       { $1 :: $3 }
+
+recordTerm:
+    IDV EQ term
+      { [($1, $3)] }
+  | IDV EQ term COMMA recordTerm
+      { ($1, $3) :: $5 }
+  | { [] }

@@ -34,6 +34,9 @@ Introduction:
     Projections are included, so this new term is considered. This will be used as a list of string. We could think that is not a good idea because the Projections
     in tuples uses number for referecing terms but this is done for reusing it for records later on.
 
+2.5 Records
+    
+
 
 
 TECNIC MANUAL
