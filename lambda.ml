@@ -7,6 +7,7 @@ type ty =
   | TyArr of ty * ty
   | TyString (*Añadido tipo string**)
   | TyVar of string
+  | TyTuple of ty list  (*type for tuples*)
 ;;
 
 
@@ -26,6 +27,8 @@ type term =
   | TmFix of term
   | TmString of string (*Añadido tipo de string*)
   | TmConcat of term * term (*Añadido tipo de concat*)
+  | TmTuple of term list  (*Tuples*)
+  | TmProj of term * string (*Projection*)
 ;;
 
 type command = 
@@ -93,6 +96,13 @@ let rec string_of_ty ty = match ty with
       "String"
   | TyVar s ->
       s
+  | TyTuple ty -> (*Gather types from the list*)
+    let rec aux l = 
+      match l with
+          h :: [] -> string_of_ty h
+        | h :: t -> (string_of_ty h ^ ", ") ^ aux t
+        | [] -> raise (Invalid_argument "not valid empty tuple") 
+    in "{" ^ aux ty ^ "}"
 ;;
 
 exception Type_error of string
@@ -112,6 +122,7 @@ let rec typeofTy ctx ty =
     | TyVar s ->
         let newType = gettbinding ctx s in
         typeofTy ctx newType
+    | _ -> raise (Type_error "type not supported")
 ;;
 
 (*
@@ -215,6 +226,15 @@ let rec typeof ctx tm = match tm with
   | TmConcat (t1, t2) ->
       if typeof ctx t1 = TyString && typeof ctx t2 = TyString then TyString
       else raise (Type_error "argument of concat is not error")
+    (* T-Tuple *)
+  | TmTuple t1 ->
+      TyTuple (List.map (typeof ctx) t1)
+      (* T-Proj *)
+  | TmProj (t1,s) ->
+      match typeof ctx t1 with
+           TyTuple l -> (try List.nth l (int_of_string s -1) with
+                        | _ -> raise (Type_error ("label " ^ s  ^ " not found"))) (*Label without any value*)
+          | _ -> raise (Type_error "tuple type expected")
 ;;
 
 
@@ -384,6 +404,18 @@ and string_of_atomicTerm t = match t with
       print_string("true")
   | TmFalse ->
       print_string("false")
+  | TmTuple s ->  (*prints every term separated by ',' and finally surrounded bu curly brackets*)
+      let rec aux = function
+          [] -> print_string("")
+        | h :: [] -> pretty_printer h
+        | h :: t -> pretty_printer h;
+                    print_string(", ");
+                    aux t
+      in print_string("{"); aux s; print_string("}")
+  | TmProj (t, s) ->  (*prints the projection*)
+        pretty_printer t;
+        print_string(".");
+        print_string(s)
   | _ -> print_string("(");
          pretty_printer t;
          print_string(")")
@@ -430,6 +462,15 @@ let rec free_vars tm = match tm with
       []
   | TmConcat (t1,t2) ->
       lunion (free_vars t1) (free_vars t2)
+  | TmTuple t ->  (* for every term in the tuple get free vars and make union of all*)
+    let rec aux l = 
+      match l with
+          h :: [] -> free_vars h
+        | h :: t -> lunion (free_vars h) (aux t)
+        | [] -> []
+    in aux t
+  | TmProj (t, _) ->  (* free vars from proj come from de the term*)
+      free_vars t 
 ;;
 
 let rec fresh_name x l =
@@ -475,6 +516,10 @@ let rec subst x s tm = match tm with
       TmString st
   | TmConcat (t1, t2) ->
       TmConcat (subst x s t1, subst x s t2)
+  | TmTuple t ->
+      TmTuple (List.map (subst x s) t)  (* apply subs to every term in the tuple*)
+  | TmProj (t1, t2) ->
+      TmProj (subst x s t1, t2)
 ;;
 
 let rec isnumericval tm = match tm with
@@ -488,6 +533,7 @@ let rec isval tm = match tm with
   | TmFalse -> true
   | TmAbs _ -> true
   | TmString _ -> true
+  | TmTuple l -> List.for_all (fun t -> isval t) l  (* check if every element in tuple is valid*)
   | t when isnumericval t -> true
   | _ -> false
 ;;
@@ -590,6 +636,19 @@ let rec eval1 ctx tm = match tm with
       TmConcat ( t1', t2)
   | TmVar s ->
       getvbinding ctx s
+      (* E-Tuple*)
+  | TmTuple l ->    (* evaluate tuple*)
+      let rec aux = function
+          h :: t when isval h -> let t' = aux t in h::t'
+        | h :: t -> let h' = eval1 ctx h in h'::t
+        | [] -> raise NoRuleApplies
+      in TmTuple (aux l)
+     (* E-Proj-Tuple *)
+  | TmProj (TmTuple l as v, s) when isval v ->  (*evaluate nth element from tuple*)
+      List.nth l (int_of_string s - 1)
+      (* E-Proj *)
+  | TmProj (t, s) ->
+      let t' = eval1 ctx t in TmProj (t', s)
   | _ ->
       raise NoRuleApplies
 ;;

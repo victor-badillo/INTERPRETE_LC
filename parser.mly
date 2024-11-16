@@ -24,6 +24,9 @@
 
 %token LPAREN
 %token RPAREN
+%token LCURLY
+%token RCURLY
+%token COMMA
 %token DOT
 %token EQ
 %token COLON
@@ -71,20 +74,27 @@ term :
       { TmLetIn ($2, TmFix (TmAbs ($2, $4, $6)), $8) }
 
 appTerm :
-    atomicTerm
+    indexTerm
       { $1 }
-  | SUCC atomicTerm
+  | SUCC indexTerm
       { TmSucc $2 }
-  | PRED atomicTerm
+  | PRED indexTerm
       { TmPred $2 }
-  | ISZERO atomicTerm
+  | ISZERO indexTerm
       { TmIsZero $2 }
-  | CONCAT atomicTerm atomicTerm
+  | CONCAT indexTerm indexTerm
       { TmConcat ($2, $3) }
-  | FIX atomicTerm
+  | FIX indexTerm
       { TmFix $2 }
-  | appTerm atomicTerm
+  | appTerm indexTerm
       { TmApp ($1, $2) }
+
+indexTerm :
+  | indexTerm DOT INTV                      (*proj with numbers*)
+      { TmProj ($1, string_of_int $3) }
+  | atomicTerm
+      { $1 } 
+
 
 atomicTerm :
     LPAREN term RPAREN
@@ -102,6 +112,8 @@ atomicTerm :
         in f $1 }
   | STRINGV
       { TmString $1 }
+  | LCURLY tupleTerm RCURLY
+      { TmTuple $2 }
 
 ty :
     atomicTy
@@ -121,3 +133,8 @@ atomicTy :
   | IDT
       { TyVar $1 }
 
+tupleTerm : (* save terms from tuple in a list, not valid empty tuple*)
+    term
+      { [$1] }
+  | term COMMA tupleTerm
+      { $1 :: $3 }

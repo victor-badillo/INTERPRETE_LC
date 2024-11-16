@@ -5,6 +5,7 @@ type ty =
   | TyArr of ty * ty
   | TyString (*Añadido tipo string*)
   | TyVar of string
+  | TyTuple of ty list
 ;;
 
 
@@ -23,6 +24,8 @@ type term =
   | TmFix of term
   | TmString of string (*Termino de string*)
   | TmConcat of term * term (*Termino para concatenar string*)
+  | TmTuple of term list
+  | TmProj of term * string
 ;;
 
 type command = 

@@ -25,6 +25,15 @@ Introduction:
     In order to declare recursive functions and not recursive functions without the use of operator in, it is necessary to modify de parser and create
     a rule for this two cases. One rule for let was created in the 'term' rule and one other for letrec.
 
+2.4 Tuples
+    lexer.mll: 3 new tokens were included in the sintaxis, curly brackets and comma for separating inside the tuple.
+    parser.mly: a new rule is used for indexing one element inside the tuple. This rule will try to math the case for indexing one element. If it was not
+    possible, then it will continue normally as before including this rule, trying to match an atomic term. It does not exist any priority inside this rule,
+    therefore one '|' is placed before every possible match.
+    The new tuple is assigned to a TmTuple term, which must have at least one element.
+    Projections are included, so this new term is considered. This will be used as a list of string. We could think that is not a good idea because the Projections
+    in tuples uses number for referecing terms but this is done for reusing it for records later on.
+
 
 
 TECNIC MANUAL

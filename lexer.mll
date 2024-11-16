@@ -27,6 +27,9 @@ rule token = parse
   | "quit"      { QUIT }
   | '('         { LPAREN }
   | ')'         { RPAREN }
+  | '{'         { LCURLY }  (*Register opening curly bracket*)
+  | '}'         { RCURLY }  (*Register opening curly bracket*)
+  | ','         { COMMA }   (*Register commas, used for tuples, records and variants*)
   | '.'         { DOT }
   | '='         { EQ }
   | ':'         { COLON }
