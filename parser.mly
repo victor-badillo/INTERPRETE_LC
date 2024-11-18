@@ -37,8 +37,8 @@
 %token RCURLY
 %token LSQUARE  (*Lists*)
 %token RSQUARE  (*Lists*)
-%token LARROW
-%token RARROW
+%token LARROW   (*Variants*)
+%token RARROW   (*Variants*)
 %token COMMA
 %token DOT
 %token EQ

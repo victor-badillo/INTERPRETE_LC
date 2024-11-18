@@ -471,9 +471,9 @@ and string_of_appTerm t = match t with
       print_string("cons[" ^ string_of_ty ty ^ "] ");  pretty_printer h; print_space(); print_string("("); pretty_printer t; print_string(")") *)
   | TmCons (ty,h,t) -> 
     let aux acc = function
-          TmNil _ -> print_string("cons[" ^ string_of_ty ty ^ "]"); print_space(); pretty_printer h; print_space(); pretty_printer t; print_string(")")
+          TmNil _ -> print_string("cons[" ^ string_of_ty ty ^ "]"); print_space(); pretty_printer h; print_space(); pretty_printer t;
         | TmCons (_, subh, subt) -> print_string("cons[" ^ string_of_ty ty ^ "] ");  pretty_printer h; print_space(); print_string("("); pretty_printer t; print_string(")") 
-        | _ -> raise (Failure "invalid pattern in TmCons aux function")
+        | _ -> raise (Failure "invalid pattern in TmCons aux function")(*esta bien?*)
       in aux [] t
   | TmIsNil (ty,t) -> print_string("isnil[" ^ string_of_ty ty ^ "]"); print_space(); print_string("("); pretty_printer t; print_string(")") 
   | TmHead (ty,t) -> print_string("head[" ^ string_of_ty ty ^ "]"); print_space(); print_string("("); pretty_printer t; print_string(")") 
