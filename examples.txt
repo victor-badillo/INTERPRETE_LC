@@ -33,3 +33,25 @@ letrec sum : Nat -> Nat -> Nat =
                        lambda n : Nat. if iszero n then 1
                            else prod n (fac (pred n))
                    in fac 5;;
+l = cons[Nat] 8 (cons[Nat] 5 (cons[Nat] 7 nil[Nat]));;
+l2 = cons[Nat] 1 (cons[Nat] 2 nil[Nat]);;
+length = 
+  letrec length : List[Nat] -> Nat =
+    lambda l : List[Nat]. if isnil[Nat] l then 0 else sum 1 (length (tail[Nat] l))
+  in
+    length
+  ;;
+letrec append : List[Nat] -> List[Nat] -> List[Nat] =
+  lambda l1 : List[Nat]. lambda l2 : List[Nat].
+    if isnil[Nat] l1 then l2
+    else cons[Nat] (head[Nat] l1) (append (tail[Nat] l1) l2)
+ in
+   append l l2
+;;
+letrec map : (Nat -> Nat) -> List[Nat] -> List[Nat] =
+  lambda f : (Nat -> Nat). lambda l1 : List[Nat].
+    if isnil[Nat] l1 then nil[Nat]
+    else cons[Nat] (f (head[Nat] l1)) (map f (tail[Nat] l1))
+  in
+    map f l
+;;
