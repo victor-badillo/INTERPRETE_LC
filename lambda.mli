@@ -7,6 +7,7 @@ type ty =
   | TyVar of string
   | TyTuple of ty list
   | TyRecord of (string * ty) list
+  | TyList of ty  (*type for Lists*)
 ;;
 
 
@@ -28,6 +29,11 @@ type term =
   | TmTuple of term list
   | TmProj of term * string
   | TmRecord of (string * term) list
+  | TmNil of ty (*Lists*)
+  | TmCons of ty * term * term  (*Lists*)
+  | TmIsNil of ty * term  (*Lists*)
+  | TmHead of ty * term   (*Lists*)
+  | TmTail of ty * term   (*Lists*)
 ;;
 
 type command = 

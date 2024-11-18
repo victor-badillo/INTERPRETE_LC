@@ -9,6 +9,7 @@ type ty =
   | TyVar of string
   | TyTuple of ty list  (*type for tuples*)
   | TyRecord of (string * ty) list  (*type for records*)
+  | TyList of ty  (*type for Lists*)
 ;;
 
 
@@ -31,6 +32,11 @@ type term =
   | TmTuple of term list  (*Tuples*)
   | TmProj of term * string (*Projection*)
   | TmRecord of (string * term) list  (*Records*)
+  | TmNil of ty (*Lists*)
+  | TmCons of ty * term * term  (*Lists*)
+  | TmIsNil of ty * term  (*Lists*)
+  | TmHead of ty * term   (*Lists*)
+  | TmTail of ty * term   (*Lists*)
 ;;
 
 type command = 
@@ -112,11 +118,29 @@ let rec string_of_ty ty = match ty with
         | (i, h) :: t -> (i ^ " : " ^ string_of_ty h ^ ", ") ^ aux t
         | [] -> ""
     in "{" ^ aux ty ^ "}"
+  | TyList ty ->    (*Lists*)
+    "List[" ^ string_of_ty ty ^ "]"
 ;;
 
 exception Type_error of string
 ;;
-
+(*
+let rec subtypeof tm1 tm2 = 
+  match (tm1, tm2) with
+    (TyRecord(l1), TyRecord(l2)) ->
+    let check (x, ty) l =
+      try 
+        subtypeof ty (List.assoc x l)
+      with Not_found -> false
+    in let rec contains l1 l2 = 
+      match l1 with
+          [] -> true
+        | h::t -> check h l2 && contains t l2
+    in contains l1 l2
+  | (TyArr(s1, s2), TyArr(t1, t2)) -> subtypeof s1 t1 && subtypeof t2 s2
+  | (tm1, tm2) -> tm1 = tm2
+;;
+*)
 
 let rec typeofTy ctx ty =
   match ty with
@@ -131,6 +155,8 @@ let rec typeofTy ctx ty =
     | TyVar s ->
         let newType = gettbinding ctx s in
         typeofTy ctx newType
+    | TyList s -> (*Arreglar para que se ponga con el tipo directo??*)  (*Lists*)
+        TyList s
     | _ -> raise (Type_error "type not supported")
 ;;
 
@@ -241,16 +267,51 @@ let rec typeof ctx tm = match tm with
       (* T-Record *)
   | TmRecord t1 ->  (*get keys, get the values and for this list apply typeof for each one, then combine resulting list with keys*)
         TyRecord (List.combine (List.map fst t1) (List.map (typeof ctx) (List.map snd t1)))
-      (* T-Proj *)
+      (* T-Nil *)
+  | TmNil t1 ->
+      let base_ty = typeofTy ctx t1 in
+      TyList base_ty
+    (* T-Cons *)
+  (*| TmCons (ty, t1, t2) ->
+      let tyT1 = typeof ctx t1 in
+      let tyT2 = typeof ctx t2 in
+      let base_ty = typeofTy ctx ty in
+      (match tyT2 with
+          TyList ty21 ->
+            if (subtypeof tyT1 base_ty) && (subtypeof tyT2 (TyList(base_ty))) then TyList(base_ty)
+            else raise (Type_error "list types don't match")
+        | _ -> raise (Type_error "list type expected")
+      )
+        *)
+  | TmCons (ty, t1, t2) ->
+      let bty = typeofTy ctx ty in
+      let ty1 = typeof ctx t1 in
+      let ty2 = typeof ctx t2 in
+        if ty1 = bty && ty2 = TyList bty then TyList bty
+        else raise (Type_error "cons operands have different types")
+      (* T-IsNil *)
+  | TmIsNil (ty, t) ->
+      let bty = typeofTy ctx ty in
+      if typeof ctx t = TyList(bty) then TyBool
+      else raise (Type_error ("argument of isNil is not a " ^ "List[" ^ (string_of_ty ty) ^ "]"))
+      (* T-Head *)
+  | TmHead (ty,t) ->
+      let bty = typeofTy ctx ty in
+      if typeof ctx t = TyList(bty) then bty
+      else raise (Type_error ("argument of head is not a " ^ "List[" ^ (string_of_ty ty) ^ "]"))
+     (* T-Tail *)
+  | TmTail (ty,t) ->
+      let bty = typeofTy ctx ty in
+      if typeof ctx t = TyList(bty) then TyList(bty)
+      else raise (Type_error ("argument of tail is not a " ^ "List[" ^ (string_of_ty ty) ^ "]"))
+  (* T-Proj *)
   | TmProj (t1,s) ->
-      match typeof ctx t1 with
-           TyTuple l -> (try List.nth l (int_of_string s -1) with
-                        | _ -> raise (Type_error ("label " ^ s  ^ " not found"))) (*Label without any value*)
-          | TyRecord l -> (try List.assoc s l with
-                        | _ -> raise (Type_error ("label " ^ s  ^ " not found"))) (*label without any value*)
-          | _ -> raise (Type_error "tuple type expected")
-        (* T-Record *)
-  
+    match typeof ctx t1 with
+         TyTuple l -> (try List.nth l (int_of_string s -1) with
+                      | _ -> raise (Type_error ("label " ^ s  ^ " not found"))) (*Label without any value*)
+        | TyRecord l -> (try List.assoc s l with
+                      | _ -> raise (Type_error ("label " ^ s  ^ " not found"))) (*label without any value*)
+        | _ -> raise (Type_error "tuple type expected")
 ;;
 
 
@@ -405,6 +466,18 @@ and string_of_appTerm t = match t with
       print_string(") (");
       string_of_atomicTerm t2;
       print_string(")")
+  | TmNil ty -> print_string("nil[" ^string_of_ty ty ^ "]");
+  (*| TmCons (ty,h,t) -> 
+      print_string("cons[" ^ string_of_ty ty ^ "] ");  pretty_printer h; print_space(); print_string("("); pretty_printer t; print_string(")") *)
+  | TmCons (ty,h,t) -> 
+    let aux acc = function
+          TmNil _ -> print_string("cons[" ^ string_of_ty ty ^ "]"); print_space(); pretty_printer h; print_space(); pretty_printer t; print_string(")")
+        | TmCons (_, subh, subt) -> print_string("cons[" ^ string_of_ty ty ^ "] ");  pretty_printer h; print_space(); print_string("("); pretty_printer t; print_string(")") 
+        | _ -> raise (Failure "invalid pattern in TmCons aux function")
+      in aux [] t
+  | TmIsNil (ty,t) -> print_string("isnil[" ^ string_of_ty ty ^ "]"); print_space(); print_string("("); pretty_printer t; print_string(")") 
+  | TmHead (ty,t) -> print_string("head[" ^ string_of_ty ty ^ "]"); print_space(); print_string("("); pretty_printer t; print_string(")") 
+  | TmTail (ty,t) -> print_string("tail[" ^ string_of_ty ty ^ "]"); print_space(); print_string("(");  pretty_printer t; print_string(")")
   | _ -> 
       string_of_atomicTerm t
 
@@ -500,6 +573,16 @@ let rec free_vars tm = match tm with
     in aux t
   | TmProj (t, _) ->  (* free vars from proj come from de the term*)
       free_vars t 
+  | TmNil ty -> (*Lists*)
+      []
+  | TmCons (ty,t1,t2) ->  (*Lists*)
+      lunion (free_vars t1) (free_vars t2)       
+  | TmIsNil (ty,t) -> (*Lists*)
+      free_vars t   
+  | TmHead (ty,t) ->  (*Lists*)
+      free_vars t 
+  | TmTail (ty,t) ->  (*Lists*)
+      free_vars t
   
 ;;
 
@@ -552,6 +635,16 @@ let rec subst x s tm = match tm with
       TmRecord (List.combine (List.map fst t) (List.map (subst x s) (List.map snd t))) (*get keys, get the values and for this list apply subst for each one, then combine resulting list with keys*)
   | TmProj (t1, t2) ->
       TmProj (subst x s t1, t2)
+  | TmNil ty -> (*Lists*)
+      tm
+  | TmCons (ty,t1,t2) ->  (*Lists*)
+      TmCons (ty, (subst x s t1), (subst x s t2))
+  | TmIsNil (ty,t) -> (*Lists*)
+      TmIsNil (ty, (subst x s t))  
+  | TmHead (ty,t) ->  (*Lists*)
+      TmHead (ty, (subst x s t))  
+  | TmTail (ty,t) ->  (*Lists*)
+      TmTail (ty, (subst x s t))
 ;;
 
 let rec isnumericval tm = match tm with
@@ -567,6 +660,8 @@ let rec isval tm = match tm with
   | TmString _ -> true
   | TmTuple l -> List.for_all (fun t -> isval t) l  (* check if every element in tuple is valid*)
   | TmRecord l -> List.for_all (fun t -> isval t) (List.map snd l)  (* check if every value in each pair in tuple is valid*)
+  | TmNil _ -> true (*Lists*)
+  | TmCons(_,h,t) -> isval h && isval t (*Lists*)
   | t when isnumericval t -> true
   | _ -> false
 ;;
@@ -692,6 +787,33 @@ let rec eval1 ctx tm = match tm with
       (* E-Proj *)
   | TmProj (t, s) ->
       let t' = eval1 ctx t in TmProj (t', s)
+    (*E-Cons2*)
+  |TmCons(ty,h,t) when isval h -> 
+      TmCons(ty,h,(eval1 ctx t))
+    (*E-Cons1*)
+  |TmCons(ty,h,t) -> 
+      TmCons(ty,(eval1 ctx h),t)
+    (*E-IsNilNil*)
+  |TmIsNil(ty,TmNil(_)) -> 
+      TmTrue
+    (*E-IsNilCons*)
+  |TmIsNil(ty,TmCons(_,_,_)) -> 
+      TmFalse
+    (*E-IsNil*)
+  |TmIsNil(ty,t) -> 
+      TmIsNil(ty,eval1 ctx t)
+    (*E-HeadCons*)
+  |TmHead(ty,TmCons(_,h,_))-> 
+      h
+    (*E-Head*)
+  |TmHead(ty,t) -> 
+      TmHead(ty,eval1 ctx t)
+    (*E-TailCons*)
+  |TmTail(ty,TmCons(_,_,t)) -> 
+      t
+    (*E-Tail*)
+  |TmTail(ty,t) -> 
+      TmTail(ty,eval1 ctx t)
   | _ ->
       raise NoRuleApplies
 ;;

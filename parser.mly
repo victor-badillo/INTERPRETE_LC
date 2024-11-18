@@ -24,11 +24,19 @@
 %token AS       (*Variants*)
 %token CASE     (*Variants*)
 %token OF       (*Variants*)
+%token LIST    (*Lists*)
+%token NIL      (*Lists*)
+%token CONS     (*Lists*)
+%token ISNIL    (*Lists*)
+%token HEAD     (*Lists*)
+%token TAIL     (*Lists*)
 
 %token LPAREN
 %token RPAREN
 %token LCURLY
 %token RCURLY
+%token LSQUARE  (*Lists*)
+%token RSQUARE  (*Lists*)
 %token LARROW
 %token RARROW
 %token COMMA
@@ -36,7 +44,7 @@
 %token EQ
 %token COLON
 %token ARROW
-%token STRONGARROW
+%token STRONGARROW  (*Variants*)
 %token EOF
 %token DOUBLE_SEMICOLON     (*Token final de expresion*)
 %token OPT                  (*Variants*)
@@ -93,6 +101,14 @@ appTerm :
       { TmConcat ($2, $3) }
   | FIX indexTerm
       { TmFix $2 }
+  | CONS LSQUARE ty RSQUARE indexTerm indexTerm
+      { TmCons ($3,$5,$6) }
+  | ISNIL LSQUARE ty RSQUARE indexTerm
+      { TmIsNil ($3,$5) }
+  | HEAD LSQUARE ty RSQUARE indexTerm
+      { TmHead ($3,$5) }
+  | TAIL LSQUARE ty RSQUARE indexTerm
+      { TmTail ($3,$5) }
   | appTerm indexTerm
       { TmApp ($1, $2) }
 
@@ -125,6 +141,8 @@ atomicTerm :
       { TmTuple $2 }
   | LCURLY recordTerm RCURLY
       { TmRecord $2 }
+  | NIL LSQUARE ty RSQUARE 
+      { TmNil $3 }
 
 ty :
     atomicTy
@@ -145,6 +163,8 @@ atomicTy :
       { TyVar $1 }
   | LCURLY recordTy RCURLY
       { TyRecord $2 }
+  | LIST LSQUARE ty RSQUARE
+      { TyList $3 }
 
 recordTy:
     { [] }
