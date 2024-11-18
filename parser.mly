@@ -87,6 +87,10 @@ term :
       { TmLetIn ($2, TmFix (TmAbs ($2, $4, $6)), TmVar $2) } *)(* letrec without 'in' *) 
   | LETREC IDV COLON ty EQ term IN term
       { TmLetIn ($2, TmFix (TmAbs ($2, $4, $6)), $8) }
+  | LARROW IDV EQ term RARROW AS ty
+      { TmTag ($2, $4, $7) }
+  | CASE term OF variantCases
+      { TmCase ($2, $4) } 
 
 appTerm :
     indexTerm
@@ -149,6 +153,8 @@ ty :
       { $1 }
   | atomicTy ARROW ty
       { TyArr ($1, $3) }
+  | LARROW variantTy RARROW
+      { TyVariant $2 } 
 
 atomicTy :
     LPAREN ty RPAREN
@@ -173,6 +179,12 @@ recordTy:
   | IDV COLON ty COMMA recordTy
       { ($1,$3) :: $5 }
 
+variantTy :
+    IDV COLON ty
+      { [($1, $3)] }
+  | IDV COLON ty COMMA variantTy
+      { ($1, $3) :: $5 } 
+
 tupleTerm : (* save terms from tuple in a list, not valid empty tuple*)
     term
       { [$1] }
@@ -185,3 +197,16 @@ recordTerm:
   | IDV EQ term COMMA recordTerm
       { ($1, $3) :: $5 }
   | { [] }
+
+variantCases:
+  variantCase 
+     { [$1] }
+| variantCase OPT variantCases
+    { $1 :: $3}
+
+variantCase :
+    LARROW IDV EQ IDV RARROW STRONGARROW appTerm
+      { [($2, $4, $7)] }
+ (* | LARROW IDV EQ term  RARROW STRONGARROW appTerm OPT variantCase
+      { ($2, $4, $7) :: $9 } *)s
+

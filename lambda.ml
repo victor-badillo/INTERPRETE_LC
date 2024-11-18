@@ -10,6 +10,7 @@ type ty =
   | TyTuple of ty list  (*type for tuples*)
   | TyRecord of (string * ty) list  (*type for records*)
   | TyList of ty  (*type for Lists*)
+  | TyVariant of (string * ty) list (*Variants*)
 ;;
 
 
@@ -37,6 +38,8 @@ type term =
   | TmIsNil of ty * term  (*Lists*)
   | TmHead of ty * term   (*Lists*)
   | TmTail of ty * term   (*Lists*)
+  | TmTag of string * term * ty
+  | TmCase of term * (string * string * term) list
 ;;
 
 type command = 
