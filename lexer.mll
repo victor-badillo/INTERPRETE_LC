@@ -50,7 +50,7 @@ rule token = parse
   | "->"        { ARROW }
   | "=>"        { STRONGARROW }  (*Variants*)
   | ['0'-'9']+  { INTV (int_of_string (Lexing.lexeme lexbuf)) }
-  | ['a'-'z']['a'-'z' '_' '0'-'9']*
+  | ['a'-'z']['a'-'z' '_' '0'-'9']*   (*no capital letter valid for variable names*)
                 { IDV (Lexing.lexeme lexbuf) }
   | ['A'-'Z']['A'-'Z''a'-'z' '_''0'-'9']*             (*Variables por types*)
                 { IDT (Lexing.lexeme lexbuf) }

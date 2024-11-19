@@ -39,6 +39,12 @@ Introduction:
 2.6 Variants
 
 
+Considerations:
+
+Capital letters for naming variables are not valid. The only reason for doing this is follow a general schema and clearness.
+
+
+
 
 
 TECNIC MANUAL
