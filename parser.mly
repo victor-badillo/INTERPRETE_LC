@@ -167,10 +167,18 @@ atomicTy :
       { TyString }
   | IDT
       { TyVar $1 }
+  | LCURLY tupleTy RCURLY
+      { TyTuple $2 } 
   | LCURLY recordTy RCURLY
       { TyRecord $2 }
   | LIST LSQUARE ty RSQUARE
       { TyList $3 }
+
+tupleTy:
+    ty
+      { [$1] }
+  | ty COMMA tupleTy
+      { $1 :: $3 }
 
 recordTy:
     { [] }
@@ -206,7 +214,7 @@ variantCases:
 
 variantCase :
     LARROW IDV EQ IDV RARROW STRONGARROW appTerm
-      { [($2, $4, $7)] }
+      { ($2, $4, $7) }
  (* | LARROW IDV EQ term  RARROW STRONGARROW appTerm OPT variantCase
-      { ($2, $4, $7) :: $9 } *)s
+      { ($2, $4, $7) :: $9 } *)
 

@@ -155,11 +155,17 @@ let rec typeofTy ctx ty =
         TyString
     | TyArr (ty1, ty2) ->
         TyArr(typeofTy ctx ty1, typeofTy ctx ty2)
-    | TyVar s ->
+    | TyVar s ->  (*Añadir posible error*)
         let newType = gettbinding ctx s in
         typeofTy ctx newType
-    | TyList s -> (*Arreglar para que se ponga con el tipo directo??*)  (*Lists*)
-        TyList s
+    | TyTuple l ->
+        TyTuple (List.map (typeofTy ctx) l)
+    | TyRecord l ->
+        TyRecord (List.map (fun (s, t) -> (s, typeofTy ctx t)) l)
+    | TyList s ->
+        TyList (typeofTy ctx s)
+    | TyVariant l -> 
+        TyVariant (List.map (fun (s, t) -> (s, typeofTy ctx t)) l)
     | _ -> raise (Type_error "type not supported")
 ;;
 
