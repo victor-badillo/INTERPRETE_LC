@@ -123,6 +123,13 @@ let rec string_of_ty ty = match ty with
     in "{" ^ aux ty ^ "}"
   | TyList ty ->    (*Lists*)
     "List[" ^ string_of_ty ty ^ "]"
+  | TyVariant ty ->
+    let rec aux l = 
+      match l with
+          (i, h) :: [] -> i ^ " : " ^ string_of_ty h
+        | (i, h) :: t -> (i ^ " : " ^ string_of_ty h ^ ", ") ^ aux t
+        | [] -> ""
+    in "<" ^ aux ty ^ ">"
 ;;
 
 exception Type_error of string
@@ -166,7 +173,6 @@ let rec typeofTy ctx ty =
         TyList (typeofTy ctx s)
     | TyVariant l -> 
         TyVariant (List.map (fun (s, t) -> (s, typeofTy ctx t)) l)
-    | _ -> raise (Type_error "type not supported")
 ;;
 
 (*
