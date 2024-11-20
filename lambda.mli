@@ -3,11 +3,11 @@ type ty =
     TyBool
   | TyNat
   | TyArr of ty * ty
-  | TyString (*Añadido tipo string*)
-  | TyVar of string
-  | TyTuple of ty list
-  | TyRecord of (string * ty) list
-  | TyList of ty  (*type for Lists*)
+  | TyString (*String*)
+  | TyVar of string (*Global context*)
+  | TyTuple of ty list  (*Tuples*)
+  | TyRecord of (string * ty) list  (*Records*)
+  | TyList of ty  (*Lists*)
   | TyVariant of (string * ty) list (*Variants*)
 ;;
 
@@ -24,54 +24,55 @@ type term =
   | TmAbs of string * ty * term
   | TmApp of term * term
   | TmLetIn of string * term * term
-  | TmFix of term
-  | TmString of string (*Termino de string*)
-  | TmConcat of term * term (*Termino para concatenar string*)
-  | TmTuple of term list
-  | TmProj of term * string
-  | TmRecord of (string * term) list
-  | TmNil of ty (*Lists*)
-  | TmCons of ty * term * term  (*Lists*)
-  | TmIsNil of ty * term  (*Lists*)
-  | TmHead of ty * term   (*Lists*)
-  | TmTail of ty * term   (*Lists*)
-  | TmTag of string * term * ty
-  | TmCase of term * (string * string * term) list
+  | TmFix of term       (*Fix*)
+  | TmString of string (*String*)
+  | TmConcat of term * term (*Concat*)
+  | TmTuple of term list  (*Tuples*)
+  | TmProj of term * string  (*Projection*)
+  | TmRecord of (string * term) list  (*Records*)
+  | TmNil of ty (*Nil*)
+  | TmCons of ty * term * term  (*Constructor*)
+  | TmIsNil of ty * term  (*Isnil*)
+  | TmHead of ty * term   (*Head*)
+  | TmTail of ty * term   (*Tail*)
+  | TmTag of string * term * ty (*Variants tagging*)
+  | TmCase of term * (string * string * term) list  (*Variants case*)
 ;;
 
+(*Type of command input by user*)
 type command = 
-    Eval of term
-  | Bind of string * term
-  | TBind of string * ty
-  | Quit
+    Eval of term            (*Evaluate*)
+  | Bind of string * term   (*Binding terms*)
+  | TBind of string * ty    (*Binding types*)
+  | Quit                    (*Exit programm*)
 ;;
 
+(*Type of bindings for context*)
 type binding =
-  TyBind of ty
-  | TyTmBind of (ty * term)
+  TyBind of ty              (*Types*)
+  | TyTmBind of (ty * term) (*Terms*)
 ;;
 
+(*Global context*)
 type context =
   (string * binding) list
 ;;
 
-val emptyctx : context;;
+val emptyctx : context;;  (*Initial value for context*)
+
+(*Functions used for adding types or values for variables*)
 val addtbinding : context -> string -> ty -> context;;
 val addvbinding : context -> string -> ty -> term -> context;;
+(*Functions used for retrieving types or values from variables*)
 val gettbinding : context -> string -> ty;;
 val getvbinding : context -> string -> term;;
-(*
-val addbinding : context -> string -> ty -> context;;
-val getbinding : context -> string -> ty;;
-*)
 
-val string_of_ty : ty -> string;;
-exception Type_error of string;;
-val typeof : context -> term -> ty;;
+val string_of_ty : ty -> string;;     (*String form of some type*)
+exception Type_error of string;;      (*Exception*)
+val typeof : context -> term -> ty;;  (*Type of term in context*)
 
-val pretty_printer : term -> unit;;
-(*val string_of_term : term -> string;;*)
-exception NoRuleApplies;;
-val eval : context -> term -> term;;
-val execute : context -> command -> context;;
+val pretty_printer : term -> unit;;   (*Nice printing of outputs*)
+exception NoRuleApplies;;             (*No rule applies*)
+val eval : context -> term -> term;;   (*Evaluate term in context*)
+val execute : context -> command -> context;;   (*Execute command in context*)
 
