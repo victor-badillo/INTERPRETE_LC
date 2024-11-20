@@ -594,9 +594,9 @@ let rec subst x s tm = match tm with
       TmHead (ty, (subst x s t))  
   | TmTail (ty,t) ->  (*Lists*)
       TmTail (ty, (subst x s t))
-      (*
   | TmTag (s1, t, ty) ->
       TmTag (s1, subst x s t, ty)
+      (*
   | TmCase (t, cases) ->   (* Variants *)
       let t' = subst x s t in
       let cases' = List.map (fun (tag, v, case) ->
