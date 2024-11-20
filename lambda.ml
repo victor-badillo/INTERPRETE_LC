@@ -526,13 +526,13 @@ let rec free_vars tm = match tm with
       free_vars t 
   | TmTail (ty,t) ->  (*Lists*)
       free_vars t
-      (*
   | TmTag (_, t, _) ->  (*Variants*)
       free_vars t
-  | TmCase (t, cases) ->    (*Variants*)
-      let fv_t = free_vars t in
-      let fv_cases = List.flatten (List.map (fun (_, _, tm) -> free_vars tm) cases) in
-      lunion fv_t fv_cases   *)
+  | TmCase (t, cases) ->  (*Variants*)
+      lunion (free_vars t)
+        (List.fold_left
+            (fun fv (lb, id, ti) -> lunion (ldif (free_vars ti) [id]) fv)
+          [] cases)
 ;;
 
 let rec fresh_name x l =
@@ -596,21 +596,21 @@ let rec subst x s tm = match tm with
       TmTail (ty, (subst x s t))
       (*
   | TmTag (s1, t, ty) ->
-    TmTag (s1, subst x s t, ty)
+      TmTag (s1, subst x s t, ty)
   | TmCase (t, cases) ->   (* Variants *)
-    let t' = subst x s t in
-    let cases' = List.map (fun (tag, v, case) ->
-      if v = x then
-        (tag, v, case)
-      else
-        let fvs = free_vars s in
-        if not (List.mem v fvs) then
-          (tag, v, subst x s case)
+      let t' = subst x s t in
+      let cases' = List.map (fun (tag, v, case) ->
+        if v = x then
+          (tag, v, case)
         else
-          let z = fresh_name v (free_vars case @ fvs) in
-          (tag, z, subst x s (subst v (TmVar z) case))
-    ) cases in
-    TmCase (t', cases') *)
+          let fvs = free_vars s in
+          if not (List.mem v fvs) then
+            (tag, v, subst x s case)
+          else
+            let z = fresh_name v (free_vars case @ fvs) in
+            (tag, z, subst x s (subst v (TmVar z) case))
+      ) cases in
+      TmCase (t', cases') *)
 ;;
 
 let rec isnumericval tm = match tm with
