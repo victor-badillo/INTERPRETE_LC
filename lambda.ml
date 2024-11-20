@@ -319,6 +319,43 @@ let rec typeof ctx tm = match tm with
       let bty = typeofTy ctx ty in
       if typeof ctx t = TyList(bty) then TyList(bty)
       else raise (Type_error ("argument of tail is not a " ^ "List[" ^ (string_of_ty ty) ^ "]"))
+      (* T-Variant *)
+  | TmTag (s, t, ty) ->
+      let tyT1 = typeof ctx t in
+      let tyT2 = typeofTy ctx ty in
+      (match tyT2 with
+          | TyVariant l -> 
+            (try 
+              if tyT1 = List.assoc s l then tyT2  (* Verificar que el tipo de t coincida con el tipo de la variante *)
+              else raise (Type_error ("type mismatch in variant"))
+            with Not_found -> raise (Type_error ("case " ^ s ^ " not found")))
+   | _ -> raise (Type_error "variant expected"))
+      (* T-Case *)
+  | TmCase (t, cases) ->
+      let tyT1 = typeof ctx t in
+      (match tyT1 with
+         TyVariant l -> 
+            let vtags = List.map (function (tag, _) -> tag) l in
+            let ctags = List.map (function (tag, _, _) -> tag) cases in
+            if List.length vtags = List.length ctags &&
+               List.for_all (fun tag -> List.mem tag vtags) ctags 
+            then
+              let (tag1, id1, tm1) = List.hd cases in
+              let ty1 = List.assoc tag1 l in
+              let ctx1 = addtbinding ctx id1 ty1 in
+              let rty = typeof ctx1 tm1 in
+              let rec aux = function
+                 [] -> rty
+                | (tagi, idi, tmi) :: rest ->
+                    let tyi = List.assoc tagi l in
+                    let ctxi = addtbinding ctx idi tyi in
+                    let tyi = typeof ctxi tmi in
+                    if tyi = rty then aux rest
+                    else raise (Type_error "result type mismatch in case")
+              in aux (List.tl cases)
+            else
+              raise (Type_error "variant and cases have different tags")
+        | _ -> raise (Type_error "variant expected"))
   (* T-Proj *)
   | TmProj (t1,s) ->
     match typeof ctx t1 with
@@ -443,6 +480,31 @@ let rec pretty_printer n = match n with
       print_space();
       print_string("else ");
       pretty_printer t3;
+      close_box ()
+  | TmTag (idv, t, ty) ->
+      open_hvbox 0;
+      print_string("<" ^ idv ^ " =");
+      print_space();
+      pretty_printer t;
+      print_string(">");
+      close_box ()
+  | TmCase (t, cases) ->
+      open_vbox 0;
+      print_string "case ";
+      pretty_printer t;
+      print_string " of";
+      print_space ();
+      List.iteri
+        (fun i (label, var, body) ->
+          if i > 0 then (
+            print_space ();
+            print_string "| ";
+          ) else print_string "  ";
+          print_string ("<" ^ label ^ " = " ^ var ^ "> => ");
+          print_space ();
+          pretty_printer body;
+        )
+        cases;
       close_box ()
   | _ -> 
         string_of_appTerm n
@@ -598,7 +660,13 @@ let rec free_vars tm = match tm with
       free_vars t 
   | TmTail (ty,t) ->  (*Lists*)
       free_vars t
-  
+      (*
+  | TmTag (_, t, _) ->  (*Variants*)
+      free_vars t
+  | TmCase (t, cases) ->    (*Variants*)
+      let fv_t = free_vars t in
+      let fv_cases = List.flatten (List.map (fun (_, _, tm) -> free_vars tm) cases) in
+      lunion fv_t fv_cases   *)
 ;;
 
 let rec fresh_name x l =
@@ -660,6 +728,23 @@ let rec subst x s tm = match tm with
       TmHead (ty, (subst x s t))  
   | TmTail (ty,t) ->  (*Lists*)
       TmTail (ty, (subst x s t))
+      (*
+  | TmTag (s1, t, ty) ->
+    TmTag (s1, subst x s t, ty)
+  | TmCase (t, cases) ->   (* Variants *)
+    let t' = subst x s t in
+    let cases' = List.map (fun (tag, v, case) ->
+      if v = x then
+        (tag, v, case)
+      else
+        let fvs = free_vars s in
+        if not (List.mem v fvs) then
+          (tag, v, subst x s case)
+        else
+          let z = fresh_name v (free_vars case @ fvs) in
+          (tag, z, subst x s (subst v (TmVar z) case))
+    ) cases in
+    TmCase (t', cases') *)
 ;;
 
 let rec isnumericval tm = match tm with
@@ -677,6 +762,10 @@ let rec isval tm = match tm with
   | TmRecord l -> List.for_all (fun t -> isval t) (List.map snd l)  (* check if every value in each pair in tuple is valid*)
   | TmNil _ -> true (*Lists*)
   | TmCons(_,h,t) -> isval h && isval t (*Lists*)
+  (*
+  | TmTag(_, t, _) -> isval t
+  | TmCase(t, cases) -> isval t && List.for_all (fun (_, _, t_case) -> isval t_case) cases 
+  *)
   | t when isnumericval t -> true
   | _ -> false
 ;;
@@ -829,6 +918,25 @@ let rec eval1 ctx tm = match tm with
     (*E-Tail*)
   |TmTail(ty,t) -> 
       TmTail(ty,eval1 ctx t)
+      (*
+    (* E-Tag *)
+  | TmTag (s, t, ty) when isval t ->
+      TmTag (s, t, ty)
+    (* E-TagEval *)
+  | TmTag (s, t, ty) ->
+      let t' = eval1 ctx t in
+      TmTag (s, t', ty)
+  (* E-Case-Match *)
+  | TmCase (TmTag (s, v, _), cases) when isval v ->
+    (match List.find_opt (fun (tag, _, _) -> tag = s) cases with
+     | Some (_, x, t) -> subst x v t
+     | None -> raise NoRuleApplies)
+
+  (* E-Case-Eval *)
+  | TmCase (t, cases) ->
+    let t' = eval1 ctx t in
+    TmCase (t', cases)
+    *)
   | _ ->
       raise NoRuleApplies
 ;;
