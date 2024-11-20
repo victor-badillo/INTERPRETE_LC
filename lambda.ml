@@ -13,8 +13,6 @@ type ty =
   | TyVariant of (string * ty) list (*Variants*)
 ;;
 
-
-
 type term =
     TmTrue
   | TmFalse
@@ -84,15 +82,6 @@ let getvbinding ctx s =
     | _ -> raise Not_found
 ;;
 
-(*
-let addbinding ctx x bind =
-  (x, bind) :: ctx
-;;
-
-let getbinding ctx x =
-  List.assoc x ctx
-;;
-*)
 
 (* TYPE MANAGEMENT (TYPING) *)
 
@@ -175,28 +164,6 @@ let rec typeofTy ctx ty =
         TyVariant (List.map (fun (s, t) -> (s, typeofTy ctx t)) l)
 ;;
 
-(*
-let rec getBasicTy ctx ty = 
-  match ty with
-    TyBool ->
-      TyBool
-  | TyNat ->
-      TyNat
-  | TyString ->
-      TyString
-  | TyArr (ty1, ty2) ->
-      TyArr(ty1, ty2)
-  | _ -> raise (Type_error "not valid type")
-;;
-
-let rec typeofTy ctx ty =
-  match ty with
-     TyVar s ->
-        let newType = gettbinding ctx s in
-        typeofTy ctx newType
-    | _ -> getBasicTy ctx ty
-;;
-*)
 let rec typeof ctx tm = match tm with
     (* T-True *)
     TmTrue ->
@@ -287,17 +254,6 @@ let rec typeof ctx tm = match tm with
       let base_ty = typeofTy ctx t1 in
       TyList base_ty
     (* T-Cons *)
-  (*| TmCons (ty, t1, t2) ->
-      let tyT1 = typeof ctx t1 in
-      let tyT2 = typeof ctx t2 in
-      let base_ty = typeofTy ctx ty in
-      (match tyT2 with
-          TyList ty21 ->
-            if (subtypeof tyT1 base_ty) && (subtypeof tyT2 (TyList(base_ty))) then TyList(base_ty)
-            else raise (Type_error "list types don't match")
-        | _ -> raise (Type_error "list type expected")
-      )
-        *)
   | TmCons (ty, t1, t2) ->
       let bty = typeofTy ctx ty in
       let ty1 = typeof ctx t1 in
@@ -368,94 +324,6 @@ let rec typeof ctx tm = match tm with
 
 
 (* TERMS MANAGEMENT (EVALUATION) *)
-(*
-let rec string_of_term = function
-    TmTrue ->
-      "true"
-  | TmFalse ->
-      "false"
-  | TmIf (t1,t2,t3) ->
-      "if " ^ "(" ^ string_of_term t1 ^ ")" ^
-      " then " ^ "(" ^ string_of_term t2 ^ ")" ^
-      " else " ^ "(" ^ string_of_term t3 ^ ")"
-  | TmZero ->
-      "0"
-  | TmSucc t ->
-     let rec f n t' = match t' with
-          TmZero -> string_of_int n
-        | TmSucc s -> f (n+1) s
-        | _ -> "succ " ^ "(" ^ string_of_term t ^ ")"
-      in f 1 t
-  | TmPred t ->
-      "pred " ^ "(" ^ string_of_term t ^ ")"
-  | TmIsZero t ->
-      "iszero " ^ "(" ^ string_of_term t ^ ")"
-  | TmVar s ->
-      s
-  | TmAbs (s, tyS, t) ->
-      "(lambda " ^ s ^ ":" ^ string_of_ty tyS ^ ". " ^ string_of_term t ^ ")"
-  | TmApp (t1, t2) ->
-      "(" ^ string_of_term t1 ^ " " ^ string_of_term t2 ^ ")"
-  | TmLetIn (s, t1, t2) ->
-      "let " ^ s ^ " = " ^ string_of_term t1 ^ " in " ^ string_of_term t2
-  | TmFix t ->
-      "(fix " ^string_of_term t ^ ")"
-  | TmString s ->
-      "\"" ^ s ^ "\""
-  | TmConcat (t1,t2) ->
-      "concat " ^ "(" ^ string_of_term t1 ^ ")" ^ " " ^ "(" ^ string_of_term t2 ^ ")"
-;;
-*)
-(*
-let rec string_of_term n = match n with
-  | TmAbs (s, tyS, t) ->
-      "lambda " ^ s ^ " : " ^ string_of_ty tyS ^ ". " ^ string_of_term t
-  | TmLetIn (s, t1, t2) ->
-      "let " ^ s ^ " = " ^ string_of_term t1 ^ " in " ^ string_of_term t2
-  | TmIf (t1,t2,t3) ->
-        "if " ^ string_of_term t1 ^ 
-        " then " ^ string_of_term t2 ^ 
-        " else " ^ string_of_term t3
-  | _ -> 
-        string_of_appTerm n
-
-
-and string_of_appTerm t = match t with
-  | TmApp (t1, t2) -> 
-      string_of_appTerm t1 ^ " " ^ string_of_appTerm t2
-  | TmSucc t -> 
-    let rec f n t' = match t' with
-          TmZero -> string_of_int n
-        | TmSucc s -> f (n+1) s
-        | _ -> "(succ " ^ string_of_atomicTerm t ^ ")"
-      in f 1 t
-  | TmPred t -> 
-      "(pred " ^ string_of_atomicTerm t ^ ")"
-  | TmIsZero t ->
-      "iszero " ^ string_of_atomicTerm t
-  | TmFix t ->
-      "fix " ^ string_of_atomicTerm t
-  | TmConcat (t1,t2) ->
-      "concat " ^ "(" ^ string_of_atomicTerm t1 ^ ")" ^ " " ^ "(" ^ string_of_atomicTerm t2 ^ ")"
-  | _ -> 
-      string_of_atomicTerm t
-
-
-and string_of_atomicTerm t = match t with
-  | TmVar s -> 
-      s
-  | TmString s ->
-      "\"" ^ s ^ "\""
-  | TmZero ->
-      "0"
-  | TmTrue ->
-      "true"
-  | TmFalse ->
-      "false"
-  | _ -> "(" ^ string_of_term t ^ ")"
-
-;;
-*)
 
 let rec pretty_printer n = match n with
   | TmAbs (s, tyS, t) ->
@@ -544,8 +412,6 @@ and string_of_appTerm t = match t with
       string_of_atomicTerm t2;
       print_string(")")
   | TmNil ty -> print_string("nil[" ^string_of_ty ty ^ "]");
-  (*| TmCons (ty,h,t) -> 
-      print_string("cons[" ^ string_of_ty ty ^ "] ");  pretty_printer h; print_space(); print_string("("); pretty_printer t; print_string(")") *)
   | TmCons (ty,h,t) -> 
     let aux acc = function
           TmNil _ -> print_string("cons[" ^ string_of_ty ty ^ "]"); print_space(); pretty_printer h; print_space(); pretty_printer t;
@@ -954,37 +820,6 @@ let rec eval ctx tm =
     NoRuleApplies -> apply_ctx ctx tm
 ;;
 
-(*
-let execute ctx = function 
-  Eval tm ->
-    let tyTm = typeof ctx tm in
-    let tm' = eval ctx tm in
-    print_endline("- : " ^ string_of_ty tyTm ^ " = " ^ string_of_term tm');
-    ctx
-
-  | Bind (s, tm) -> 
-    let tyTm = typeof ctx tm in
-    let tm' = eval ctx tm in
-    print_endline (s ^ " : " ^ string_of_ty tyTm ^ " = " ^ string_of_term tm');
-    addvbinding ctx s tyTm tm'
-  | Quit ->
-    raise End_of_file
-*)
-
-
-(*
-        let tm = s token (from_string input) in
-        let tyTm = typeof ctx tm in
-        (*print_endline ("- : " ^ string_of_ty tyTm ^ " = " ^ string_of_term (eval tm)); *) (* First type and the term*)
-        Format.open_hvbox 0;
-        print_string ("- : " ^ string_of_ty tyTm ^ " =");
-        Format.print_space();
-        pretty_printer (eval tm);
-        Format.close_box ();
-        Format.print_flush(); (*Clean boxes*)
-        print_newline();
-        loop ctx
-        *)
 
 let execute ctx = function 
   Eval tm ->
