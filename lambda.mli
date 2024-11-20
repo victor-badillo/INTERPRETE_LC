@@ -67,11 +67,9 @@ val addvbinding : context -> string -> ty -> term -> context;;
 val gettbinding : context -> string -> ty;;
 val getvbinding : context -> string -> term;;
 
-val string_of_ty : ty -> string;;     (*String form of some type*)
 exception Type_error of string;;      (*Exception*)
 val typeof : context -> term -> ty;;  (*Type of term in context*)
 
-val pretty_printer : term -> unit;;   (*Nice printing of outputs*)
 exception NoRuleApplies;;             (*No rule applies*)
 val eval : context -> term -> term;;   (*Evaluate term in context*)
 val execute : context -> command -> context;;   (*Execute command in context*)

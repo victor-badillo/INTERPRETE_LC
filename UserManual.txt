@@ -32,17 +32,51 @@ Introduction:
         pred a
     ;;
 
-1.2 More complete "Pretty-printer".
 
-    To implement this section, a modification was first made in main.ml to return the type string before the term string. 
-    After this small change, lambda.ml was specifically modified in the string_of_term function. 
-    This function was subdivided, creating a cascade of functions that call each other according to the expression encountered, 
-    adding brackets only when required and removing any excess brackets. The subfunctions created are string_of_appTerm and string_of_atomicTerm. 
-    Additionally, excess brackets were removed in string_of_ty.
+1.2 Pretty-printer.
 
-    In order to obtain a good identation it is necessary to change the return value of string_of_term and directly print in the screen the string_of_term.
-    For simplicity me change the name of string_of_term to pretty_printer. Depending on the kind of term, we use a box to encapsulate a part of the output
-    and insert the apropiate identation. print_space() is used in order to break line or insert a white space.
+    The pretty-printer allows for a much more readable output. First, depending on the command to be executed, a corresponding output is generated for each 
+    command, and instead of storing the output in a string, it is printed directly to the screen. Examples of possible outputs are:
+
+    Evaluación:
+    - : Type = term
+
+    Bind:
+    var : Type = term
+
+    TBind:
+    type VarType = Type
+
+    The implementation was done by creating a cascade of functions that call each other depending on the term to be printed. For terms, the surrounding 
+    parentheses have been removed, keeping only those that enclose non-atomic terms. Besides achieving the main goal of removing unnecessary parentheses, the 
+    output has been organized with good indentation to make the code as readable as possible.
+
+    Regarding the code, the changes required for implementation are straightforward. To begin with, the string_of_ty and string_of_term functions are no longer
+    needed in the main module, so their signatures have been removed from the .mli file. This pretty-printer function is called for evaluations and bindings. 
+    It divides terms into atomic terms, applications, and others, and applies appropriate indentation based on the type of term being printed. This indentation 
+    is achieved using the boxes from OCaml's Format module.
+
+    In addition to removing unnecessary parentheses from terms, parentheses have also been removed from types.
+
+    Examples:
+
+    lambda x : Nat.x;;
+    - : Nat -> Nat = lambda x : Nat. x
+
+    letrec sum : Nat -> Nat -> Nat =
+    lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) in
+    sum ;;
+    - : Nat -> Nat -> Nat =
+    lambda n : Nat.
+     lambda m : Nat.
+      if iszero n then m
+       else (succ (fix (lambda sum : Nat -> Nat -> Nat.
+                         lambda n : Nat.
+                          lambda m : Nat.
+                           if iszero n then m else (succ (sum (pred n) m)))
+                    (pred n) m))
+
+
 
 2.1 Fixed-point combinator
     ...
