@@ -5,12 +5,12 @@ type ty =
     TyBool
   | TyNat
   | TyArr of ty * ty
-  | TyString (*Añadido tipo string**)
+  | TyString
   | TyVar of string
-  | TyTuple of ty list  (*type for tuples*)
-  | TyRecord of (string * ty) list  (*type for records*)
-  | TyList of ty  (*type for Lists*)
-  | TyVariant of (string * ty) list (*Variants*)
+  | TyTuple of ty list
+  | TyRecord of (string * ty) list
+  | TyList of ty
+  | TyVariant of (string * ty) list
 ;;
 
 type term =
@@ -26,16 +26,16 @@ type term =
   | TmApp of term * term
   | TmLetIn of string * term * term
   | TmFix of term
-  | TmString of string (*Añadido tipo de string*)
-  | TmConcat of term * term (*Añadido tipo de concat*)
-  | TmTuple of term list  (*Tuples*)
-  | TmProj of term * string (*Projection*)
-  | TmRecord of (string * term) list  (*Records*)
-  | TmNil of ty (*Lists*)
-  | TmCons of ty * term * term  (*Lists*)
-  | TmIsNil of ty * term  (*Lists*)
-  | TmHead of ty * term   (*Lists*)
-  | TmTail of ty * term   (*Lists*)
+  | TmString of string
+  | TmConcat of term * term
+  | TmTuple of term list
+  | TmProj of term * string
+  | TmRecord of (string * term) list
+  | TmNil of ty
+  | TmCons of ty * term * term
+  | TmIsNil of ty * term
+  | TmHead of ty * term
+  | TmTail of ty * term
   | TmTag of string * term * ty
   | TmCase of term * (string * string * term) list
 ;;
@@ -96,23 +96,23 @@ let rec string_of_ty ty = match ty with
       "String"
   | TyVar s ->
       s
-  | TyTuple ty -> (*Gather types from the list*)
+  | TyTuple ty ->   (*Separate values by commas and surrounded by {}*)
     let rec aux l = 
       match l with
           h :: [] -> string_of_ty h
         | h :: t -> (string_of_ty h ^ ", ") ^ aux t
         | [] -> raise (Invalid_argument "not valid empty tuple") 
     in "{" ^ aux ty ^ "}"
-  | TyRecord ty ->    (*Get key-value for every pair*)
+  | TyRecord ty ->   (*Separate key-value by commas and surrounded by {}*)
     let rec aux l = 
       match l with
           (i, h) :: [] -> i ^ " : " ^ string_of_ty h
         | (i, h) :: t -> (i ^ " : " ^ string_of_ty h ^ ", ") ^ aux t
         | [] -> ""
     in "{" ^ aux ty ^ "}"
-  | TyList ty ->    (*Lists*)
+  | TyList ty ->
     "List[" ^ string_of_ty ty ^ "]"
-  | TyVariant ty ->
+  | TyVariant ty ->   (*Separate key-value by commas and surrounded by <>*)
     let rec aux l = 
       match l with
           (i, h) :: [] -> i ^ " : " ^ string_of_ty h
@@ -151,16 +151,19 @@ let rec typeofTy ctx ty =
         TyString
     | TyArr (ty1, ty2) ->
         TyArr(typeofTy ctx ty1, typeofTy ctx ty2)
-    | TyVar s ->  (*Añadir posible error*)
-        let newType = gettbinding ctx s in
-        typeofTy ctx newType
-    | TyTuple l ->
+    | TyVar s ->
+        (try 
+          let newType = gettbinding ctx s in
+          typeofTy ctx newType
+        with
+          _ -> raise (Type_error ("no binding type for variable " ^ s)))
+    | TyTuple l ->                                                    (*Get basic type of every type*)
         TyTuple (List.map (typeofTy ctx) l)
-    | TyRecord l ->
+    | TyRecord l ->                                                   (*Get basic type of every type*)
         TyRecord (List.map (fun (s, t) -> (s, typeofTy ctx t)) l)
     | TyList s ->
         TyList (typeofTy ctx s)
-    | TyVariant l -> 
+    | TyVariant l ->                                                  (*Get basic type of every type*)
         TyVariant (List.map (fun (s, t) -> (s, typeofTy ctx t)) l)
 ;;
 
@@ -168,11 +171,9 @@ let rec typeof ctx tm = match tm with
     (* T-True *)
     TmTrue ->
       TyBool
-
     (* T-False *)
   | TmFalse ->
       TyBool
-
     (* T-If *)
   | TmIf (t1, t2, t3) ->
       if typeof ctx t1 = TyBool then
@@ -181,38 +182,31 @@ let rec typeof ctx tm = match tm with
         else raise (Type_error "arms of conditional have different types")
       else
         raise (Type_error "guard of conditional not a boolean")
-
     (* T-Zero *)
   | TmZero ->
       TyNat
-
     (* T-Succ *)
   | TmSucc t1 ->
       if typeof ctx t1 = TyNat then TyNat
       else raise (Type_error "argument of succ is not a number")
-
     (* T-Pred *)
   | TmPred t1 ->
       if typeof ctx t1 = TyNat then TyNat
       else raise (Type_error "argument of pred is not a number")
-
     (* T-Iszero *)
   | TmIsZero t1 ->
       if typeof ctx t1 = TyNat then TyBool
       else raise (Type_error "argument of iszero is not a number")
-
     (* T-Var *)
   | TmVar x ->
       (try gettbinding ctx x with
        _ -> raise (Type_error ("no binding type for variable " ^ x)))
-
     (* T-Abs *)
   | TmAbs (x, tyT1, t2) ->
       let base_tyT1 = typeofTy ctx tyT1 in
       let ctx' = addtbinding ctx x base_tyT1 in
       let tyT2 = typeof ctx' t2 in
       TyArr (base_tyT1, tyT2)
-
     (* T-App *)
   | TmApp (t1, t2) ->
       let tyT1 = typeof ctx t1 in
@@ -222,13 +216,11 @@ let rec typeof ctx tm = match tm with
              if tyT2 = tyT11 then tyT12
              else raise (Type_error "parameter type mismatch")
          | _ -> raise (Type_error "arrow type expected"))
-
     (* T-Let *)
   | TmLetIn (x, t1, t2) ->
       let tyT1 = typeof ctx t1 in
       let ctx' = addtbinding ctx x tyT1 in
       typeof ctx' t2
-  
     (* T-Fix *)
   | TmFix t1 ->
       let tyT1 = typeof ctx t1 in
@@ -237,19 +229,20 @@ let rec typeof ctx tm = match tm with
           if tyT11 = tyT12 then tyT12
           else raise (Type_error "result of body not compatible with domain")
       | _ -> raise (Type_error "arrow type expected"))
-      (*new rule*)
+    (* T-String *)
   | TmString _ ->
       TyString
+    (* T-Concat *)
   | TmConcat (t1, t2) ->
       if typeof ctx t1 = TyString && typeof ctx t2 = TyString then TyString
-      else raise (Type_error "argument of concat is not error")
+      else raise (Type_error "argument of concat is not a string")
     (* T-Tuple *)
-  | TmTuple t1 ->
+  | TmTuple t1 -> (*Apply typeof to every value in tuple*)
       TyTuple (List.map (typeof ctx) t1)
-      (* T-Record *)
-  | TmRecord t1 ->  (*get keys, get the values and for this list apply typeof for each one, then combine resulting list with keys*)
+    (* T-Record *)
+  | TmRecord t1 ->  (*Get keys, get values and for this list apply typeof for each one, then combine resulting list with keys*)
         TyRecord (List.combine (List.map fst t1) (List.map (typeof ctx) (List.map snd t1)))
-      (* T-Nil *)
+    (* T-Nil *)
   | TmNil t1 ->
       let base_ty = typeofTy ctx t1 in
       TyList base_ty
@@ -258,49 +251,48 @@ let rec typeof ctx tm = match tm with
       let bty = typeofTy ctx ty in
       let ty1 = typeof ctx t1 in
       let ty2 = typeof ctx t2 in
-        if ty1 = bty && ty2 = TyList bty then TyList bty
+        if ty1 = bty && ty2 = TyList bty then TyList bty    (*Check basic type with type from constructor and check same type for following values, List of basic type*)
         else raise (Type_error "cons operands have different types")
-      (* T-IsNil *)
+    (* T-IsNil *)
   | TmIsNil (ty, t) ->
       let bty = typeofTy ctx ty in
       if typeof ctx t = TyList(bty) then TyBool
       else raise (Type_error ("argument of isNil is not a " ^ "List[" ^ (string_of_ty ty) ^ "]"))
-      (* T-Head *)
+    (* T-Head *)
   | TmHead (ty,t) ->
       let bty = typeofTy ctx ty in
       if typeof ctx t = TyList(bty) then bty
       else raise (Type_error ("argument of head is not a " ^ "List[" ^ (string_of_ty ty) ^ "]"))
-     (* T-Tail *)
+    (* T-Tail *)
   | TmTail (ty,t) ->
       let bty = typeofTy ctx ty in
       if typeof ctx t = TyList(bty) then TyList(bty)
       else raise (Type_error ("argument of tail is not a " ^ "List[" ^ (string_of_ty ty) ^ "]"))
-      (* T-Variant *)
+    (* T-Variant *)
   | TmTag (s, t, ty) ->
       let tyT1 = typeof ctx t in
       let tyT2 = typeofTy ctx ty in
       (match tyT2 with
           | TyVariant l -> 
             (try 
-              if tyT1 = List.assoc s l then tyT2  (* Verificar que el tipo de t coincida con el tipo de la variante *)
+              if tyT1 = List.assoc s l then tyT2    (*Check that term type matches with expected type*)
               else raise (Type_error ("type mismatch in variant"))
             with Not_found -> raise (Type_error ("case " ^ s ^ " not found")))
-   | _ -> raise (Type_error "variant expected"))
-      (* T-Case *)
+      | _ -> raise (Type_error "variant expected"))
+    (* T-Case *)
   | TmCase (t, cases) ->
       let tyT1 = typeof ctx t in
       (match tyT1 with
          TyVariant l -> 
-            let vtags = List.map (function (tag, _) -> tag) l in
-            let ctags = List.map (function (tag, _, _) -> tag) cases in
-            if List.length vtags = List.length ctags &&
-               List.for_all (fun tag -> List.mem tag vtags) ctags 
+            let vtags = List.map (function (tag, _) -> tag) l in          (*Get tags from types list*)
+            let ctags = List.map (function (tag, _, _) -> tag) cases in   (*Get tags from cases*)
+            if List.length vtags = List.length ctags && List.for_all (fun tag -> List.mem tag vtags) ctags (*Check that both lists have the same length and all values in cases are included in list of types*)
             then
-              let (tag1, id1, tm1) = List.hd cases in
+              let (tag1, id1, tm1) = List.hd cases in   (*First case*)
               let ty1 = List.assoc tag1 l in
               let ctx1 = addtbinding ctx id1 ty1 in
-              let rty = typeof ctx1 tm1 in
-              let rec aux = function
+              let rty = typeof ctx1 tm1 in  (*Get root type*)
+              let rec aux = function        (*For every value in cases, get its type, include it into the context and compare types with root type*)
                  [] -> rty
                 | (tagi, idi, tmi) :: rest ->
                     let tyi = List.assoc tagi l in
@@ -312,16 +304,15 @@ let rec typeof ctx tm = match tm with
             else
               raise (Type_error "variant and cases have different tags")
         | _ -> raise (Type_error "variant expected"))
-  (* T-Proj *)
-  | TmProj (t1,s) ->
+    (* T-Proj *)
+  | TmProj (t1,s) ->            (*Get corresponding value from tuple/record*)
     match typeof ctx t1 with
          TyTuple l -> (try List.nth l (int_of_string s -1) with
                       | _ -> raise (Type_error ("label " ^ s  ^ " not found"))) (*Label without any value*)
         | TyRecord l -> (try List.assoc s l with
                       | _ -> raise (Type_error ("label " ^ s  ^ " not found"))) (*label without any value*)
-        | _ -> raise (Type_error "tuple type expected")
+        | _ -> raise (Type_error "tuple/record type expected")
 ;;
-
 
 (* TERMS MANAGEMENT (EVALUATION) *)
 
@@ -498,39 +489,39 @@ let rec free_vars tm = match tm with
       free_vars t
   | TmString _ ->
       []
-  | TmConcat (t1,t2) ->
+  | TmConcat (t1,t2) ->     (*Union of free vars from both terms*)
       lunion (free_vars t1) (free_vars t2)
-  | TmTuple t ->  (* for every term in the tuple get free vars and make union of all*)
+  | TmTuple t ->            (*For every term from tuple get free vars and make union of all*)
     let rec aux l = 
       match l with
           h :: [] -> free_vars h
         | h :: t -> lunion (free_vars h) (aux t)
         | [] -> []
     in aux t
-  | TmRecord t -> (* for every pair in the record get free vars and make union of all*)
+  | TmRecord t ->           (*For every pair from record get free vars and make union of all*)
     let rec aux l =
       match l with
           (i, h) :: [] -> free_vars h
         | (i, h) :: t -> lunion (free_vars h) (aux t)
         | [] -> []
     in aux t
-  | TmProj (t, _) ->  (* free vars from proj come from de the term*)
+  | TmProj (t, _) ->        (*Free vars from proj come from term*)
       free_vars t 
-  | TmNil ty -> (*Lists*)
+  | TmNil ty ->
       []
-  | TmCons (ty,t1,t2) ->  (*Lists*)
+  | TmCons (ty,t1,t2) ->     (*Union of free vars from both terms*)
       lunion (free_vars t1) (free_vars t2)       
-  | TmIsNil (ty,t) -> (*Lists*)
+  | TmIsNil (ty,t) ->
       free_vars t   
-  | TmHead (ty,t) ->  (*Lists*)
+  | TmHead (ty,t) ->
       free_vars t 
-  | TmTail (ty,t) ->  (*Lists*)
+  | TmTail (ty,t) -> 
       free_vars t
-  | TmTag (_, t, _) ->  (*Variants*)
+  | TmTag (_, t, _) ->        (*Free vars from tag come from term*)
       free_vars t
-  | TmCase (t, cases) ->  (*Variants*)
+  | TmCase (t, cases) ->      (*Union of free vars from term after case and free vars from cases*)
       lunion (free_vars t)
-        (List.fold_left
+        (List.fold_left       (*Check that tags could appear in the right part from each case, neccessary to substract them from free vars*)
             (fun fv (lb, id, ti) -> lunion (ldif (free_vars ti) [id]) fv)
           [] cases)
 ;;
@@ -557,21 +548,21 @@ let rec subst x s tm = match tm with
   | TmVar y ->
       if y = x then s else tm
   | TmAbs (y, tyY, t) ->
-      if y = x then tm
+      if y = x then tm    (*Not neccessary to substitute*)
       else let fvs = free_vars s in
            if not (List.mem y fvs)
-           then TmAbs (y, tyY, subst x s t)
-           else let z = fresh_name y (free_vars t @ fvs) in
-                TmAbs (z, tyY, subst x s (subst y (TmVar z) t))
+           then TmAbs (y, tyY, subst x s t)   (*Direct substitution*)
+           else let z = fresh_name y (free_vars t @ fvs) in       (*Create new name for variable which is not in s nor in t*)
+                TmAbs (z, tyY, subst x s (subst y (TmVar z) t))   (*Substitute with new name*)
   | TmApp (t1, t2) ->
       TmApp (subst x s t1, subst x s t2)
   | TmLetIn (y, t1, t2) ->
-      if y = x then TmLetIn (y, subst x s t1, t2)
+      if y = x then TmLetIn (y, subst x s t1, t2)   (*Substitue in t1 and not in t2 when variable from let is equal to substituting variable*)
       else let fvs = free_vars s in
            if not (List.mem y fvs)
-           then TmLetIn (y, subst x s t1, subst x s t2)
-           else let z = fresh_name y (free_vars t2 @ fvs) in
-                TmLetIn (z, subst x s t1, subst x s (subst y (TmVar z) t2))
+           then TmLetIn (y, subst x s t1, subst x s t2)   (*Directo substitution if y does not belong to free vars*)
+           else let z = fresh_name y (free_vars t2 @ fvs) in                (*Create new name which is not in s nor in t2*)
+                TmLetIn (z, subst x s t1, subst x s (subst y (TmVar z) t2)) (*Substitute with new name*)
   | TmFix t -> 
       TmFix (subst x s t)
   | TmString st ->
@@ -579,22 +570,22 @@ let rec subst x s tm = match tm with
   | TmConcat (t1, t2) ->
       TmConcat (subst x s t1, subst x s t2)
   | TmTuple t ->
-      TmTuple (List.map (subst x s) t)  (* apply subs to every term in the tuple*)
+      TmTuple (List.map (subst x s) t)  (*Apply substitution to every term from tuple*)
   | TmRecord t ->
-      TmRecord (List.combine (List.map fst t) (List.map (subst x s) (List.map snd t))) (*get keys, get the values and for this list apply subst for each one, then combine resulting list with keys*)
+      TmRecord (List.combine (List.map fst t) (List.map (subst x s) (List.map snd t))) (*Get keys, get values and for this list apply subst for each one, then combine resulting list with keys*)
   | TmProj (t1, t2) ->
       TmProj (subst x s t1, t2)
-  | TmNil ty -> (*Lists*)
+  | TmNil ty -> 
       tm
-  | TmCons (ty,t1,t2) ->  (*Lists*)
+  | TmCons (ty,t1,t2) ->  
       TmCons (ty, (subst x s t1), (subst x s t2))
-  | TmIsNil (ty,t) -> (*Lists*)
+  | TmIsNil (ty,t) -> 
       TmIsNil (ty, (subst x s t))  
-  | TmHead (ty,t) ->  (*Lists*)
+  | TmHead (ty,t) ->  
       TmHead (ty, (subst x s t))  
-  | TmTail (ty,t) ->  (*Lists*)
+  | TmTail (ty,t) ->
       TmTail (ty, (subst x s t))
-  | TmTag (s1, t, ty) ->
+  | TmTag (s1, t, ty) ->    (*Substitute in term from tagging*)
       TmTag (s1, subst x s t, ty)
       (*
   | TmCase (t, cases) ->   (* Variants *)
@@ -623,16 +614,16 @@ let rec isval tm = match tm with
     TmTrue  -> true
   | TmFalse -> true
   | TmAbs _ -> true
-  | TmString _ -> true
-  | TmTuple l -> List.for_all (fun t -> isval t) l  (* check if every element in tuple is valid*)
-  | TmRecord l -> List.for_all (fun t -> isval t) (List.map snd l)  (* check if every value in each pair in tuple is valid*)
-  | TmNil _ -> true (*Lists*)
-  | TmCons(_,h,t) -> isval h && isval t (*Lists*)
+  | TmString _ -> true     (*String is always a value*)
+  | TmTuple l -> List.for_all (fun t -> isval t) l  (*Check if every element in tuple is valid*)
+  | TmRecord l -> List.for_all (fun t -> isval t) (List.map snd l)  (*Check if every value in each pair from record is valid*)
+  | TmNil _ -> true        (*Nil is always a value*)
+  | TmCons(_,h,t) -> isval h && isval t (*Check both terms are values*)
   (*
   | TmTag(_, t, _) -> isval t
   | TmCase(t, cases) -> isval t && List.for_all (fun (_, _, t_case) -> isval t_case) cases 
   *)
-  | t when isnumericval t -> true
+  | t when isnumericval t -> true   (*Numericals are values*)
   | _ -> false
 ;;
 
@@ -643,116 +634,95 @@ let rec eval1 ctx tm = match tm with
     (* E-IfTrue *)
     TmIf (TmTrue, t2, _) ->
       t2
-
     (* E-IfFalse *)
   | TmIf (TmFalse, _, t3) ->
       t3
-
     (* E-If *)
   | TmIf (t1, t2, t3) ->
       let t1' = eval1 ctx t1 in
       TmIf (t1', t2, t3)
-
     (* E-Succ *)
   | TmSucc t1 ->
       let t1' = eval1 ctx t1 in
       TmSucc t1'
-
     (* E-PredZero *)
   | TmPred TmZero ->
       TmZero
-
     (* E-PredSucc *)
   | TmPred (TmSucc nv1) when isnumericval nv1 ->
       nv1
-
     (* E-Pred *)
   | TmPred t1 ->
       let t1' = eval1 ctx t1 in
       TmPred t1'
-
     (* E-IszeroZero *)
   | TmIsZero TmZero ->
       TmTrue
-
     (* E-IszeroSucc *)
   | TmIsZero (TmSucc nv1) when isnumericval nv1 ->
       TmFalse
-
     (* E-Iszero *)
   | TmIsZero t1 ->
       let t1' = eval1 ctx t1 in
       TmIsZero t1'
-
     (* E-AppAbs *)
   | TmApp (TmAbs(x, _, t12), v2) when isval v2 ->
       subst x v2 t12
-
     (* E-App2: evaluate argument before applying function *)
   | TmApp (v1, t2) when isval v1 ->
       let t2' = eval1 ctx t2 in
       TmApp (v1, t2')
-
     (* E-App1: evaluate function before argument *)
   | TmApp (t1, t2) ->
       let t1' = eval1 ctx t1 in
       TmApp (t1', t2)
-
     (* E-LetV *)
   | TmLetIn (x, v1, t2) when isval v1 ->
       subst x v1 t2
-
     (* E-Let *)
   | TmLetIn(x, t1, t2) ->
       let t1' = eval1 ctx t1 in
       TmLetIn (x, t1', t2)
-
     (* E-FixBeta *)
   | TmFix (TmAbs (x, _, t2)) ->
       subst x tm t2
-      (*
-  | TmFix v1 when isval v1 ->
-      (match v1 with
-          TmAbs (x,_, t12) -> subst x tm t12
-        | _ -> raise NoRuleApplies)
-  *)
     (* E-Fix *)
   | TmFix t1 ->
       let t1' = eval1 ctx t1 in
       TmFix t1'
-    (* new rule for string*)
+    (* E-Concat *)
   | TmConcat (TmString s1, TmString s2) ->
       TmString (s1 ^ s2)
-    (* new rule for string*)
+    (* E-Concat2: eval second*)
   | TmConcat (TmString s1, t2) ->
       let t2' = eval1 ctx t2 in
       TmConcat (TmString s1, t2')
-
-   (* new rule for string*)
+    (* E-Concat2: eval first*)
   | TmConcat (t1, t2) ->
       let t1' = eval1 ctx t1 in
       TmConcat ( t1', t2)
+    (* E-Var *)
   | TmVar s ->
       getvbinding ctx s
-      (* E-Tuple*)
-  | TmTuple l ->    (* evaluate tuple*)
+    (* E-Tuple*)
+  | TmTuple l -> (* Recursively evaluates each element of a tuple, leaving values unchanged and evaluating unevaluated terms. *)
       let rec aux = function
           h :: t when isval h -> let t' = aux t in h::t'
         | h :: t -> let h' = eval1 ctx h in h'::t
         | [] -> raise NoRuleApplies
       in TmTuple (aux l)
-      (* E-Record *)
-  | TmRecord l -> (*evaluate record*)
+    (* E-Record *)
+  | TmRecord l ->  (* Recursively evaluates each element of a record, leaving values unchanged and evaluating unevaluated terms. *)
       let rec aux = function
           (key, h) :: t when isval h -> let t' = aux t in (key, h) :: t'
         | (key, h) :: t -> let h' = eval1 ctx h in (key, h') :: t
         | [] -> raise NoRuleApplies
       in TmRecord (aux l)
      (* E-Proj-Tuple *)
-  | TmProj (TmTuple l as v, s) when isval v ->  (*evaluate nth element from tuple*)
+  | TmProj (TmTuple l as v, s) when isval v ->  (*Evaluate nth element from tuple*)
       List.nth l (int_of_string s - 1)
      (* E-Proj-Record *)
-  | TmProj (TmRecord l as v, s) when isval v -> (**)
+  | TmProj (TmRecord l as v, s) when isval v -> (*Evaluate correspinding element from record*)
       List.assoc s l
       (* E-Proj *)
   | TmProj (t, s) ->
@@ -807,11 +777,13 @@ let rec eval1 ctx tm = match tm with
       raise NoRuleApplies
 ;;
 
-(*Lista de variables libres en el termino, coge las variables libres y luego una vez por cada una*)
+(*apply_ctx performs a substitution on the term tm for all free variables using the values associated with those variables in the context ctx. *)
 let apply_ctx ctx tm =
   List.fold_left (fun t x -> subst x (getvbinding ctx x) t) tm (free_vars tm)
 ;;
 
+(*eval keeps evaluating a term step-by-step using eval1 until no more evaluation rules apply. 
+Once no more rules apply, it performs a substitution of free variables using the context*)
 let rec eval ctx tm =
   try
     let tm' = eval1 ctx tm in
@@ -822,38 +794,37 @@ let rec eval ctx tm =
 
 
 let execute ctx = function 
-  Eval tm ->
-    let tyTm = typeof ctx tm in
-    let tm' = eval ctx tm in
-    Format.open_hvbox 0;
-    print_string ("- : " ^ string_of_ty tyTm ^ " =");
-    Format.print_space();
-    pretty_printer (tm');
-    Format.close_box ();
-    Format.print_flush(); (*Clean boxes*)
-    print_newline();
-    ctx
-
-  | Bind (s, tm) -> 
-    let tyTm = typeof ctx tm in
-    let tm' = eval ctx tm in
-    Format.open_hvbox 0;
-    print_string (s ^ " : " ^ string_of_ty tyTm ^ " =");
-    Format.print_space();
-    pretty_printer (tm');
-    Format.close_box ();
-    Format.print_flush(); (*Clean boxes*)
-    print_newline();
-    addvbinding ctx s tyTm tm'
-  | TBind (s, ty) ->
-    let bty = typeofTy ctx ty in
-    Format.open_hvbox 0;
-    print_string ("type " ^ s ^ " =");
-    Format.print_space();
-    print_string(string_of_ty bty);
-    Format.close_box ();
-    Format.print_flush(); (*Clean boxes*)
-    print_newline();
-    addtbinding ctx s bty
-  | Quit ->
-    raise End_of_file
+    Eval tm ->    (*Perform evaluation*)
+      let tyTm = typeof ctx tm in
+      let tm' = eval ctx tm in
+      Format.open_hvbox 0;   (*Opening box*)
+      print_string ("- : " ^ string_of_ty tyTm ^ " =");
+      Format.print_space();
+      pretty_printer (tm');
+      Format.close_box ();
+      Format.print_flush(); (*Clean boxes*)
+      print_newline();
+      ctx
+  | Bind (s, tm) ->        (*Bind value to variable*)
+      let tyTm = typeof ctx tm in
+      let tm' = eval ctx tm in
+      Format.open_hvbox 0;  (*Opening box*)
+      print_string (s ^ " : " ^ string_of_ty tyTm ^ " =");
+      Format.print_space();
+      pretty_printer (tm');
+      Format.close_box ();
+      Format.print_flush(); (*Clean boxes*)
+      print_newline();
+      addvbinding ctx s tyTm tm'  (*Add new value to context*)
+  | TBind (s, ty) ->        (*Bind type to variable*)
+      let bty = typeofTy ctx ty in  (*Get base type for assigning this basic type later, for simplicity*)
+      Format.open_hvbox 0;   (*Opening box*)
+      print_string ("type " ^ s ^ " =");
+      Format.print_space();
+      print_string(string_of_ty bty);
+      Format.close_box ();
+      Format.print_flush(); (*Clean boxes*)
+      print_newline();
+      addtbinding ctx s bty       (*Add new type to context*)
+  | Quit ->                  (*Exit*)
+      raise End_of_file
