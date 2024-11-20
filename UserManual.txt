@@ -5,11 +5,35 @@ LAMBDA-CALCULUS INTERPRETER
 AUTHOR: Víctor Nathanael Badillo Aldama
 
 Introduction:
-    This is user manual purpose is to ilustrate the user with some examples the new developed functionalities.
+    This is user manual purpose is to ilustrate the user with some examples showing the new developed functionalities and a brief explanation
+    of the necessary changes for develop the final code.
     
 1.1 Multiline expressions.
 
+    To allow the user to input multiline inputs, there are mainly two solutions: manipulating the string typed by the user or introducing new tokens 
+    in the lexical analyzer and new grammatical rules in the syntactic analyzer. In this implementation, the second option was chosen.
+
+    First, a new token DOUBLE_SEMICOLON was created to represent double semicolons. Then, in the syntactic analyzer, this token was added at the end of 
+    each rule of the axiom so that every input must end with double semicolons. In the main function, a new function was created to continuously read the 
+    input until the line contains a semicolon (;). This is sufficient as a check since semicolons are not used for any other type of input in this 
+    interpreter, so their presence indicates the end of a line. If the user accidentally types just a semicolon, a syntax error will be displayed, 
+    as explained earlier.
+
+    This solution prevents situations like one expression ended up by double semicolons and a following expression without fishing token which could cause
+    problems in other kind of implementations. 
+
+    The implementation also allows the user to enter ";;" without any relevant information. If this happens, the input loop is called again.
+
+    Example:
+
+    let
+        a = 11
+    in 
+        pred a
+    ;;
+
 1.2 More complete "Pretty-printer".
+
     To implement this section, a modification was first made in main.ml to return the type string before the term string. 
     After this small change, lambda.ml was specifically modified in the string_of_term function. 
     This function was subdivided, creating a cascade of functions that call each other according to the expression encountered, 
