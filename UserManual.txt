@@ -77,11 +77,78 @@ Introduction:
                     (pred n) m))
 
 
-
 2.1 Fixed-point combinator
-    ...
-    In order to declare recursive functions and not recursive functions without the use of operator in, it is necessary to modify de parser and create
-    a rule for this two cases. One rule for let was created in the 'term' rule and one other for letrec.
+
+    Previously, writing functions with recursion required an inconvenient syntax that was not suitable for this interpreter due to type specifications.
+    With this new functionality, we can move from this:
+
+    let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in
+    let sumaux =
+       lambda f. (lambda n. (lambda m. if (iszero n) then m else succ (f (pred n) m))) in
+    let sum = fix sumaux in
+    sum 55 45
+
+    to a more convenient syntax:
+
+    letrec sum : Nat -> Nat -> Nat =
+       lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) in
+    sum 55 45
+
+    As can be observed in the new syntax, a new token, letrec, has been introduced, which is used to define recursive functions. This new functionality requires 
+    changes in all the main files (lexer.mll, parser.mly, lambda.ml, and lambda.mli). Simply defining letrec is not enough; the fix operator has also been 
+    implemented to achieve the goal of self-referential functions. The outputs provided by this input should also be valid outputs. An example of an output used 
+    as input that returns the corresponding value of executing the operation:
+
+    (lambda n : Nat.
+     lambda m : Nat.
+      if iszero n then m
+       else (succ (fix (lambda sum : Nat -> Nat -> Nat.
+                         lambda n : Nat.
+                          lambda m : Nat.
+                           if iszero n then m else (succ (sum (pred n) m)))
+                    (pred n) m))) 55 45;;
+
+    The necessary changes in parser.mly involve capturing letrec, but it internally works by using fix, and includes fix to recognize and enable examples like the one above to work.
+    The following required changes pertain to lambda.ml, modifying the functions typeof, pretty_printer, free_vars, subst, and eval1.
+
+    Examples:
+
+    Multiplication:
+
+    letrec sum : Nat -> Nat -> Nat =
+      lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m)
+    in
+      letrec prod : Nat -> Nat -> Nat =
+        lambda n : Nat. lambda m : Nat. if iszero m then 0 else sum n (prod n (pred m))
+        in
+          prod 10 50
+    ;;
+
+    Fibonacci:
+
+    letrec sum : Nat -> Nat -> Nat =
+            lambda n: Nat. lambda m : Nat. if iszero n then m
+                  else succ (sum (pred n) m) in
+                  letrec fib: Nat -> Nat =
+                           lambda n : Nat. if iszero n then 0 else if iszero (pred n) then 1
+                                 else sum(fib (pred (pred n))) (fib (pred n)) in
+                  fib 7
+    ;;
+
+    Factorial:
+
+    letrec sum : Nat -> Nat -> Nat =
+     lambda n : Nat. lambda m : Nat. if iszero n then m
+         else succ (sum (pred n) m) in
+         letrec prod : Nat -> Nat -> Nat =
+              lambda n: Nat. lambda m : Nat. if iszero n then 0
+                  else sum (prod (pred n) m) m in
+                  letrec fac: Nat -> Nat =
+                       lambda n : Nat. if iszero n then 1
+                           else prod n (fac (pred n))
+                   in fac 5
+    ;;
+
 
 2.4 Tuples
     lexer.mll: 3 new tokens were included in the sintaxis, curly brackets and comma for separating inside the tuple.
