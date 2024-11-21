@@ -7,8 +7,25 @@ AUTHOR: Víctor Nathanael Badillo Aldama
 Introduction:
     This is user manual purpose is to ilustrate the user with some examples showing the new developed functionalities and a brief explanation
     of the necessary changes for develop the final code.
+
+Table of Contents:
+
+1.- Improvements in Lambda Expression Writing
+    1.1 Multi-Line Expression Recognition
+    1.2 Pretty-Printer
+
+2.- Extensions to Lambda Calculus
+    2.1 Fixed-Point Combinator
+    2.2 Global Definitions Context
+    2.3 String Type
+    2.4 Tuples
+    2.5 Records
+    2.6 Variants
+    2.7 Lists
+    2.8 Subtyping
+
     
-1.1 Multiline expressions.
+1.1 Multi-Line Expression Recognition
 
     To allow the user to input multiline inputs, there are mainly two solutions: manipulating the string typed by the user or introducing new tokens 
     in the lexical analyzer and new grammatical rules in the syntactic analyzer. In this implementation, the second option was chosen.
@@ -77,7 +94,7 @@ Introduction:
                     (pred n) m))
 
 
-2.1 Fixed-point combinator
+2.1 Fixed-Point Combinator
 
     Previously, writing functions with recursion required an inconvenient syntax that was not suitable for this interpreter due to type specifications.
     With this new functionality, we can move from this:
@@ -150,7 +167,16 @@ Introduction:
     ;;
 
 
+2.2 Global Definitions Context
+
+
+2.3 String Type
+
+
 2.4 Tuples
+
+
+
     lexer.mll: 3 new tokens were included in the sintaxis, curly brackets and comma for separating inside the tuple.
     parser.mly: a new rule is used for indexing one element inside the tuple. This rule will try to math the case for indexing one element. If it was not
     possible, then it will continue normally as before including this rule, trying to match an atomic term. It does not exist any priority inside this rule,
@@ -161,24 +187,19 @@ Introduction:
 
 2.5 Records
 
+
 2.6 Variants
+
+
+2.7 Lists
+
+
+2.8 Subtyping
+
 
 
 Considerations:
 
-Capital letters for naming variables are not valid. The only reason for doing this is follow a general schema and clearness.
+    Capital letters for naming variables are not valid. The only reason for doing this is follow a general schema and clearness.
 
-
-
-
-
-TECNIC MANUAL
-
-LAMBDA-CALCULUS INTERPRETER
-
-AUTHOR: Víctor Nathanael Badillo Aldama
-
-Introduction:
-    This tecnic manual purpose is to explain what modules from the original implementation have been modified and what
-    kind of changes were done to obtain de the final implementation.
     
