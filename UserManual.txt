@@ -257,7 +257,6 @@ Table of Contents:
     - : Nat = 55
 
 
-
 2.3 String Type
 
     En esta sección se ha definido un nuevo tipo String para soportar cadenas de caracteres. Para definir un string se rodea entre comillas dobles. Para reconocer esto
@@ -271,11 +270,11 @@ Table of Contents:
 
     Examples:
 
-    "apple";;
-    - : String = "apple"
+    "under";;
+    - : String = "under"
 
-    concat "apple" "pie";;
-    - : String = "applepie";;
+    concat "under" "water";;
+    - : String = "underwater";;
 
     s = "tart";;
     s : String = "tart"
@@ -287,18 +286,57 @@ Table of Contents:
     - : String = "appletarttime"
 
 
-
 2.4 Tuples
 
+    Tuples with any number of elements have been included, along with projection operations based on the position 
+    of the elements.
 
+    To begin, we need to recognize tuples, so curly brackets and commas have been included to separate the values within 
+    the tuple. As expected, a TyTuple type has been created for tuples, which stores the type of each element in a list of 
+    types, and a TmTuple has been created to represent the term as a list of terms.
 
-    lexer.mll: 3 new tokens were included in the sintaxis, curly brackets and comma for separating inside the tuple.
-    parser.mly: a new rule is used for indexing one element inside the tuple. This rule will try to math the case for indexing one element. If it was not
-    possible, then it will continue normally as before including this rule, trying to match an atomic term. It does not exist any priority inside this rule,
-    therefore one '|' is placed before every possible match.
-    The new tuple is assigned to a TmTuple term, which must have at least one element.
-    Projections are included, so this new term is considered. This will be used as a list of string. We could think that is not a good idea because the Projections
-    in tuples uses number for referecing terms but this is done for reusing it for records later on.
+    These two have been included in lambda.mli, lambda.ml, and the rules for recognizing them are implemented in parser.mly.
+
+    For projection, the term TmProj was created and included in lambda.mli and lambda.ml. This TmProj is a term * string, 
+    with the goal of later using this term to project values for records. In this way, when including TmProj, the type of 
+    projection is first recognized—whether for tuples or for records. In this case, the string is converted to an integer. 
+    Projections within other projections have also been taken into account.
+
+    Examples:
+
+    { 10, true, "messi"};;
+    - : {Nat, Bool, String} = {10, true, "messi"}
+
+    { 10, true, "messi"}.1;;
+    - : Nat = 10
+
+    { 10, true, "messi"}.2;;
+    - : Bool = true
+
+    { 10, true, "messi"}.3;;
+    - : String = "messi"
+
+    { 10, true, "messi"}.7;;
+    type error: label 7 not found
+
+    { 10, true, "messi"}.w;;
+    type error: label w not found
+
+    { 10, true, {"messi", "cr7", 9}};;
+    - : {Nat, Bool, {String, String, Nat}} = {10, true, {"messi", "cr7", 9}}
+
+    { 10, true, {"messi", "cr7", 9}}.3;;
+    - : {String, String, Nat} = {"messi", "cr7", 9}
+
+    { 10, true, {"messi", "cr7", 9}}.3.2;;
+    - : String = "cr7"
+
+    t = { 10, true, {"messi", "cr7", 9}};;
+    t : {Nat, Bool, {String, String, Nat}} = {10, true, {"messi", "cr7", 9}}
+
+    t.3.3;;
+    - : Nat = 9
+
 
 2.5 Records
 
