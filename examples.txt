@@ -49,12 +49,19 @@ letrec sum : Nat -> Nat -> Nat =
 ;;
 l = cons[Nat] 8 (cons[Nat] 5 (cons[Nat] 7 nil[Nat]));;
 l2 = cons[Nat] 1 (cons[Nat] 2 nil[Nat]);;
+f = L x:Nat. pred x;;
+sum =
+  letrec sum : Nat -> Nat -> Nat =
+      lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m)
+  in
+      sum
+;;
 length = 
   letrec length : List[Nat] -> Nat =
     lambda l : List[Nat]. if isnil[Nat] l then 0 else sum 1 (length (tail[Nat] l))
   in
     length
-  ;;
+;;
 letrec append : List[Nat] -> List[Nat] -> List[Nat] =
   lambda l1 : List[Nat]. lambda l2 : List[Nat].
     if isnil[Nat] l1 then l2

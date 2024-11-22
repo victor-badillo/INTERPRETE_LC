@@ -302,6 +302,8 @@ Table of Contents:
     projection is first recognized—whether for tuples or for records. In this case, the string is converted to an integer. 
     Projections within other projections have also been taken into account.
 
+    indexTerm is made for managing projections, including a posible projection or an atomicTerm at parser.mly.
+
     Examples:
 
     { 10, true, "messi"};;
@@ -340,13 +342,15 @@ Table of Contents:
 
 2.5 Records
 
-    Los registros utilizan los mismos tokens que las tuplas por lo que no se incluyó nada nuevo en lexer.mll
-    Estos son muy parecidos a las tuplas por lo que de nuevo se creo un tipo para estos, TyRecord. A diferencia
-    de las tuplas en los records para cada elemento hay un identificador y un valor asociado. De este modo, se
-    guarda el tipo como una lista de string * ty y su termino como una lista de string * ty. 
+    Records use the same tokens as tuples, so nothing new was added to lexer.mll.They are very similar to tuples, 
+    so again, a type for them, TyRecord, was created. Unlike tuples, in records, each element has an identifier 
+    and an associated value. In this way, the type is stored as a list of string * ty, and the term is stored as 
+    a list of string * ty.
 
-    Al tener esta diferencia se crearon unas nuevas reglas en parser.mly para los records que guardan estos valores
-    en la lista correspondiente.
+    Due to this difference, new rules were created in parser.mly for records, which store these values in the 
+    corresponding list.
+
+    The corresponding projection was included in indexTerm for records.
 
     Examples:
 
@@ -388,6 +392,109 @@ Table of Contents:
 
 
 2.7 Lists
+
+    In this section, lists containing elements of the same type have been incorporated. Additionally, basic operations have been 
+    included to get the head, the tail, and check if the list is empty.
+
+    The new tokens to incorporate this type are square brackets, cons for the constructor, nil, isnil, head, tail, and List to 
+    represent this type in the output. Each has its corresponding token, which is subsequently handled in parser.mly to recognize 
+    them in the input and process them appropriately.In this list representation, the type of each element must be specified within 
+    square brackets, followed by the term, except for cons, which must have two associated terms.
+
+    In lambda.mli and lambda.ml, the new type and terms are included. For these types and terms, the necessary changes are made to 
+    accommodate the new type, including updates to: subst, free_vars, type_of, eval1, isval, pretty-printer, string_of_ty, typeofTy.
+
+    Three functions involving lists have been added to examples.txt:
+
+    length: Calculates the length of a given list recursively based on summation.
+    append: Concatenates two lists.
+    map: Computes the resulting list by applying a given function to each element of the input list.
+
+    These functions, along with additional examples, are included in the file.
+
+    As has been done so far, the base type is applied to lists. This can also be observed in the following examples through the types they have.
+
+    Examples:
+
+    nil[Nat];;
+    - : List[Nat] = nil[Nat]
+
+    cons[Nat] 1 nil[Nat];;
+    - : List[Nat] = cons[Nat] 1 nil[Nat]
+
+    cons[Nat] 1 (cons[Nat] 2 nil[Nat]);;
+    - : List[Nat] = cons[Nat] 1 (cons[Nat] 2 nil[Nat])
+
+    l = cons[Nat] 1 (cons[Nat] 2 (cons[Nat] 3 nil[Nat]));;
+    l : List[Nat] = cons[Nat] 1 (cons[Nat] 2 (cons[Nat] 3 nil[Nat]))
+
+    isnil[Nat] l;;
+    - : Bool = false
+
+    head[Nat] l;;
+    - : Nat = 1
+
+    tail[Nat] l;;
+    - : List[Nat] = cons[Nat] 2 (cons[Nat] 3 nil[Nat])
+
+    l2 = cons[Nat] 4 (cons[Nat] 5 nil[Nat]);;
+    l2 : List[Nat] = cons[Nat] 4 (cons[Nat] 5 nil[Nat])
+
+    f = L x:Nat. pred x;;
+
+    sum =
+        letrec sum : Nat -> Nat -> Nat =
+            lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m)
+        in
+            sum
+    ;;
+
+    prod = 
+        letrec prod : Nat -> Nat -> Nat =
+            lambda n : Nat. lambda m : Nat. if iszero m then 0 else sum n (prod n (pred m))
+        in
+            prod
+    ;;
+
+    length = 
+        letrec length : List[Nat] -> Nat =
+            lambda l : List[Nat]. if isnil[Nat] l then 0 else sum 1 (length (tail[Nat] l))
+        in
+            length
+    ;;
+
+    N3 = Nat -> Nat -> Nat;;
+    nil[N3];;
+    - : List[Nat -> Nat -> Nat] = nil[N3]
+
+    cons[N3] sum nil[N3];;
+
+    cons[N3] prod (cons[N3] sum nil[N3]);;
+
+    length (cons[N3] prod (cons[N3] sum nil[N3]));;
+    type error: parameter type mismatch
+
+    length l;;
+    - : Nat = 3
+
+    (head[N3] (cons[N3] prod (cons[N3] sum nil[N3]))) 9 9;;
+    - : Nat = 81
+
+    letrec append : List[Nat] -> List[Nat] -> List[Nat] =
+      lambda l1 : List[Nat]. lambda l2 : List[Nat].
+        if isnil[Nat] l1 then l2
+        else cons[Nat] (head[Nat] l1) (append (tail[Nat] l1) l2)
+      in
+        append l l2
+    ;;
+
+    letrec map : (Nat -> Nat) -> List[Nat] -> List[Nat] =
+      lambda f : (Nat -> Nat). lambda l1 : List[Nat].
+        if isnil[Nat] l1 then nil[Nat]
+        else cons[Nat] (f (head[Nat] l1)) (map f (tail[Nat] l1))
+      in
+        map f l
+    ;;
 
 
 2.8 Subtyping
