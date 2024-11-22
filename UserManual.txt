@@ -340,6 +340,49 @@ Table of Contents:
 
 2.5 Records
 
+    Los registros utilizan los mismos tokens que las tuplas por lo que no se incluyó nada nuevo en lexer.mll
+    Estos son muy parecidos a las tuplas por lo que de nuevo se creo un tipo para estos, TyRecord. A diferencia
+    de las tuplas en los records para cada elemento hay un identificador y un valor asociado. De este modo, se
+    guarda el tipo como una lista de string * ty y su termino como una lista de string * ty. 
+
+    Al tener esta diferencia se crearon unas nuevas reglas en parser.mly para los records que guardan estos valores
+    en la lista correspondiente.
+
+    Examples:
+
+    {x=3, y=6, z=9};;
+    - : {x : Nat, y : Nat, z : Nat} = {x = 3, y = 6, z = 9}
+
+    {x=3, y=6, z=9}.x;;
+    - : Nat = 3
+
+    {x=3, y=6, z=9}.y;;
+    - : Nat = 6
+
+    {x=3, y=6, z="hi"}.z;;
+    - : String = "hi"
+
+    t = {x=3, y=6, z=9};;
+    t : {x : Nat, y : Nat, z : Nat} = {x = 3, y = 6, z = 9}
+
+    t.z;;
+    - : Nat = 9
+
+    w = {day={"hi", "tomas"}, gp = 3};;
+    w : {day : {String, String}, gp : Nat} = {day = {"hi", "tomas"}, gp = 3}
+
+    w.day;;
+    - : {String, String} = {"hi", "tomas"}
+
+    w.gp;;
+    - : Nat = 3
+
+    w.1;;
+    type error: label 1 not found
+
+    w.hello;;
+    type error: label hello not found
+
 
 2.6 Variants
 
@@ -348,11 +391,3 @@ Table of Contents:
 
 
 2.8 Subtyping
-
-
-
-Considerations:
-
-    Capital letters for naming variables are not valid. The only reason for doing this is follow a general schema and clearness.
-
-    
