@@ -53,24 +53,15 @@ Table of Contents:
 1.2 Pretty-printer.
 
     The pretty-printer allows for a much more readable output. First, depending on the command to be executed, a corresponding output is generated for each 
-    command, and instead of storing the output in a string, it is printed directly to the screen. Examples of possible outputs are:
-
-    Evaluación:
-    - : Type = term
-
-    Bind:
-    var : Type = term
-
-    TBind:
-    type VarType = Type
+    command, and instead of storing the output in a string, it is printed directly to the screen.
 
     The implementation was done by creating a cascade of functions that call each other depending on the term to be printed. For terms, the surrounding 
     parentheses have been removed, keeping only those that enclose non-atomic terms. Besides achieving the main goal of removing unnecessary parentheses, the 
     output has been organized with good indentation to make the code as readable as possible.
 
     Regarding the code, the changes required for implementation are straightforward. To begin with, the string_of_ty and string_of_term functions are no longer
-    needed in the main module, so their signatures have been removed from the .mli file. This pretty-printer function is called for evaluations and bindings. 
-    It divides terms into atomic terms, applications, and others, and applies appropriate indentation based on the type of term being printed. This indentation 
+    needed in the main module, so their signatures have been removed from the .mli file. This pretty-printer function is called for evaluations and bindings
+    (this new functionalities will be discused later in a few sections).It divides terms into atomic terms, applications, and others, and applies appropriate indentation based on the type of term being printed. This indentation 
     is achieved using the boxes from OCaml's Format module.
 
     In addition to removing unnecessary parentheses from terms, parentheses have also been removed from types.
@@ -168,6 +159,100 @@ Table of Contents:
 
 
 2.2 Global Definitions Context
+
+    In this section, the code has been modified to allow free variable names to be associated with values or terms. These can later be used in subsequent lambda expressions. 
+    The developed syntax is as follows:
+
+    identifier = term 
+
+    Example:
+
+    x = 9
+    id = lambda x : Nat. succ x;;
+
+    id x is a valid expression and returns 10.
+
+    In addition to associating free variables with terms, the possibility of creating type definitions or aliases has been included, following this syntax:
+
+    Identifier = types
+
+    Example:
+
+    N = Bool;;
+
+    After doing this, the expression lambda x: N. x must be valid, and it should have the type Bool -> Bool. It is important to note that it returns Bool -> Bool and not N -> N. This will be explained later.
+
+    This global context of definitions can be created using either an imperative context or a functional context. For a lambda calculus interpreter, it is more appropriate to implement it using a functional context. 
+    Therefore, it has been implemented following this approach.
+
+    Previously, we discussed command types in the pretty-printer. This refers to the first change made to handle the global definitions context.In the main.ml, a new function, execute, is called to process the command 
+    entered by the user within the current context. The context has been updated from being a pair of string * ty to string * binding, where binding is a new type created to specify whether it is a type or a type with 
+    a term.
+
+    There are four general command types: evaluation, value or term binding, type binding, and quit, which is used to exit. Corresponding functions have been created to add and retrieve identifier values from the context. 
+    These functions are split between those dedicated to variables and those for type variables since there is a single context storing everything. This approach is both more convenient and simpler.
+
+    Type identifiers start with an uppercase letter, so we need to be able to recognize these identifiers. To achieve this, a new token, IDT, was created in lexer.mll specifically for this type of identifier.
+
+    In parser.mly, apart from including the new IDT token, which returns a string, it is important to note that the returned type is no longer a Lambda.term but a Lambda.command.Naturally, the previously mentioned syntax 
+    must be included, so the rule s now incorporates the four types of commands.
+
+    In lambda.mli, the new signatures and types mentioned are included, and their implementations are provided in lambda.ml. TyVar is used in this global context for the type of identifiers. In code sections that handle 
+    variables, such as letin, the new identifiers being defined are added to the context. Additionally, the case of a variable term is included in the evaluation process to retrieve its value from the context.
+
+    For simplicity, it was decided to store the basic type of type identifiers to make tasks like type checking easier. Additionally, the basic types are printed instead of the identifiers. To obtain the base type, 
+    the typeofTy function is used. This function works recursively to determine the base type from the given type.
+
+    Examples:
+
+    x = 5;;
+    x : Nat = 5
+
+    pred x;;
+    - : Nat = 4
+
+    f = lambda y : Nat. x;;
+    f : Nat -> Nat = lambda y : Nat. 5
+
+    f 3;;
+    - : Nat = 5
+
+    x = 7;;
+    x : Nat = 7
+
+    f 3;;
+    - : Nat = 5
+
+    x;;
+    - : Nat = 7
+
+    sum =
+    letrec sum : Nat -> Nat -> Nat =
+        lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m)
+    in
+        sum
+    ;;
+    
+    sum x 3;;
+    - : Nat = 10
+
+    M = Nat;;
+    type M = Nat
+
+    NinN = M -> M;;
+    type NinN = Nat -> Nat
+
+    N3 = M -> NinN;;
+    type N3 = Nat -> Nat -> Nat
+
+
+    letrec sum : N3 =
+        lambda n : M. lambda m : Nat. if iszero n then m else succ (sum (pred n) m)
+    in
+        sum 21 34
+        ;;
+    - : Nat = 55
+
 
 
 2.3 String Type
