@@ -200,6 +200,9 @@ Table of Contents:
     In lambda.mli, the new signatures and types mentioned are included, and their implementations are provided in lambda.ml. TyVar is used in this global context for the type of identifiers. In code sections that handle 
     variables, such as letin, the new identifiers being defined are added to the context. Additionally, the case of a variable term is included in the evaluation process to retrieve its value from the context.
 
+    apply_ctx is another neccessary function for this section, performing a substitution on the term tm for all free variables using the values associated with those variables in the context ctx when there are not more
+    evaluation rules for one term.
+
     For simplicity, it was decided to store the basic type of type identifiers to make tasks like type checking easier. Additionally, the basic types are printed instead of the identifiers. To obtain the base type, 
     the typeofTy function is used. This function works recursively to determine the base type from the given type.
 
@@ -256,6 +259,33 @@ Table of Contents:
 
 
 2.3 String Type
+
+    En esta sección se ha definido un nuevo tipo String para soportar cadenas de caracteres. Para definir un string se rodea entre comillas dobles. Para reconocer esto
+    se ha creado la STRIGV en lexer.mll. No se registran las comillas dobles como parte del string.
+
+    Se incluye este nuevo tipo en lambda.mli, lambda.ml y parser.mly para reconocerlo, modificando las funciones habituales para un nuevo termino incluido. Destacar que
+    en isval TmString devuelve true ya que este siempre va a ser un valor.
+
+    Además de incluir el tipo String se ha definido el operador concat que puede manejar estos. Concat realiza la concatenación de strings. Para reconocer este operador
+    se incluido su correspondiente token en lexer.mll y se han modificado las funciones correspondientes en lambda.ml.
+
+    Examples:
+
+    "apple";;
+    - : String = "apple"
+
+    concat "apple" "pie";;
+    - : String = "applepie";;
+
+    s = "tart";;
+    s : String = "tart"
+
+    concat "apple" s;;
+    - : String = "appletart"
+
+    concat (concat "apple" s) "time";;
+    - : String = "appletarttime"
+
 
 
 2.4 Tuples
