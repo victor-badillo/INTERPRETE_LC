@@ -587,7 +587,6 @@ let rec subst x s tm = match tm with
       TmTail (ty, (subst x s t))
   | TmTag (s1, t, ty) ->    (*Substitute in term from tagging*)
       TmTag (s1, subst x s t, ty)
-      (*
   | TmCase (t, cases) ->   (* Variants *)
       let t' = subst x s t in
       let cases' = List.map (fun (tag, v, case) ->
@@ -601,7 +600,7 @@ let rec subst x s tm = match tm with
             let z = fresh_name v (free_vars case @ fvs) in
             (tag, z, subst x s (subst v (TmVar z) case))
       ) cases in
-      TmCase (t', cases') *)
+      TmCase (t', cases')
 ;;
 
 let rec isnumericval tm = match tm with
@@ -619,10 +618,8 @@ let rec isval tm = match tm with
   | TmRecord l -> List.for_all (fun t -> isval t) (List.map snd l)  (*Check if every value in each pair from record is valid*)
   | TmNil _ -> true        (*Nil is always a value*)
   | TmCons(_,h,t) -> isval h && isval t (*Check both terms are values*)
-  (*
   | TmTag(_, t, _) -> isval t
   | TmCase(t, cases) -> isval t && List.for_all (fun (_, _, t_case) -> isval t_case) cases 
-  *)
   | t when isnumericval t -> true   (*Numericals are values*)
   | _ -> false
 ;;
@@ -754,25 +751,22 @@ let rec eval1 ctx tm = match tm with
     (*E-Tail*)
   |TmTail(ty,t) -> 
       TmTail(ty,eval1 ctx t)
-      (*
     (* E-Tag *)
-  | TmTag (s, t, ty) when isval t ->
-      TmTag (s, t, ty)
-    (* E-TagEval *)
-  | TmTag (s, t, ty) ->
+  | TmTag (s, t, ty) when not (isval t) ->
       let t' = eval1 ctx t in
       TmTag (s, t', ty)
-  (* E-Case-Match *)
-  | TmCase (TmTag (s, v, _), cases) when isval v ->
-    (match List.find_opt (fun (tag, _, _) -> tag = s) cases with
-     | Some (_, x, t) -> subst x v t
-     | None -> raise NoRuleApplies)
-
-  (* E-Case-Eval *)
+    (* E-Case *)
+  | TmCase (TmTag (s, v, ty), cases) when isval v ->
+      let rec find_case = function
+      | [] -> raise NoRuleApplies
+      | (tag, var, body) :: rest when tag = s ->
+          subst var v body
+      | _ :: rest -> find_case rest
+    in find_case cases
+    (* E-Case2 *)
   | TmCase (t, cases) ->
-    let t' = eval1 ctx t in
-    TmCase (t', cases)
-    *)
+      let t' = eval1 ctx t in
+      TmCase (t', cases)
   | _ ->
       raise NoRuleApplies
 ;;
