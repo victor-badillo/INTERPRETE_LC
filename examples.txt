@@ -47,6 +47,51 @@ letrec sum : Nat -> Nat -> Nat =
                            else prod n (fac (pred n))
                    in fac 5
 ;;
+add = 
+ letrec add : Int -> Int -> Int =
+   lambda i1 : Int. lambda i2 : Int.
+     case i1 of
+       <zero=z1> => i2
+
+       | <pos=p1> => 
+         (case i2 of
+            <zero=z2> => i1
+          | <pos=p2> => (<pos=sum p1 p2> as Int)
+          | <neg=n2> => 
+            (
+            if iszero p1 then
+              if iszero n2 then 
+                <zero=true> as Int
+              else
+                <neg=n2> as Int
+            else
+              if iszero n2 then
+                <pos=p1> as Int 
+              else
+                add (<pos=pred p1> as Int) (<neg=pred n2> as Int)
+            )
+         )
+
+       | <neg=n1> => 
+         (case i2 of
+            <zero=z2> => i1
+          | <neg=n2> => (<neg=sum n1 n2> as Int)
+          | <pos=p2> =>
+          (
+            if iszero n1 then
+              if iszero p2 then
+                <zero=true> as Int
+              else
+                <pos=p2> as Int
+            else
+              if iszero p2 then
+                <neg=n1> as Int
+              else
+                add (<neg=pred n1> as Int) (<pos=pred p2> as Int)
+                )
+         )
+         in add
+;;
 l = cons[Nat] 8 (cons[Nat] 5 (cons[Nat] 7 nil[Nat]));;
 l2 = cons[Nat] 1 (cons[Nat] 2 nil[Nat]);;
 f = L x:Nat. pred x;;
