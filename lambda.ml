@@ -123,7 +123,8 @@ let rec string_of_ty ty = match ty with
 
 exception Type_error of string
 ;;
-(*
+
+
 let rec subtypeof tm1 tm2 = 
   match (tm1, tm2) with
     (TyRecord(l1), TyRecord(l2)) ->
@@ -137,9 +138,50 @@ let rec subtypeof tm1 tm2 =
         | h::t -> check h l2 && contains t l2
     in contains l1 l2
   | (TyArr(s1, s2), TyArr(t1, t2)) -> subtypeof s1 t1 && subtypeof t2 s2
+  (*| TyTuple l1, TyTuple l2 -> 
+    List.for_all2 subtypeof l1 l2 *)
+  | TyVariant v1, TyVariant v2 ->
+    List.for_all (fun (l1, t1) ->
+      try
+        let t2 = List.assoc l1 v2 in
+        subtypeof t1 t2
+      with Not_found -> false
+    ) v1
   | (tm1, tm2) -> tm1 = tm2
 ;;
+
+(* FUNCION DE SUBTIPADO MEJOR, list.assoc_opt para la falta de claves en registros y variantes, longitud de las tuplas con List.for_all2, subtipado de variantes flexible pero robusto
+let rec subtypeof tm1 tm2 = 
+  match (tm1, tm2) with
+    (TyRecord(l1), TyRecord(l2)) ->
+      let check (x, ty) l =
+        match List.assoc_opt x l with
+        | Some ty2 -> subtypeof ty ty2
+        | None -> false
+      in
+      let rec contains l1 l2 = 
+        match l1 with
+            [] -> true
+          | (x, ty) :: t -> check (x, ty) l2 && contains t l2
+      in
+      contains l1 l2
+  | (TyArr(s1, s2), TyArr(t1, t2)) -> subtypeof s1 t1 && subtypeof s2 t2
+  | TyTuple l1, TyTuple l2 -> 
+      if List.length l1 = List.length l2 then
+        List.for_all2 subtypeof l1 l2
+      else
+        false
+  | TyVariant v1, TyVariant v2 ->
+      List.for_all (fun (l1, t1) ->
+        match List.assoc_opt l1 v2 with
+        | Some t2 -> subtypeof t1 t2
+        | None -> false
+      ) v1
+  | (tm1, tm2) -> tm1 = tm2
+;;
+
 *)
+
 
 let rec typeofTy ctx ty =
   match ty with
@@ -213,9 +255,20 @@ let rec typeof ctx tm = match tm with
       let tyT2 = typeof ctx t2 in
       (match tyT1 with
            TyArr (tyT11, tyT12) ->
+             if subtypeof tyT11 tyT2 then tyT12
+             else raise (Type_error "parameter type mismatch")
+         | _ -> raise (Type_error "arrow type expected"))
+  (*
+    (* T-App *)
+  | TmApp (t1, t2) ->
+      let tyT1 = typeof ctx t1 in
+      let tyT2 = typeof ctx t2 in
+      (match tyT1 with
+           TyArr (tyT11, tyT12) ->
              if tyT2 = tyT11 then tyT12
              else raise (Type_error "parameter type mismatch")
          | _ -> raise (Type_error "arrow type expected"))
+  *)
     (* T-Let *)
   | TmLetIn (x, t1, t2) ->
       let tyT1 = typeof ctx t1 in
@@ -226,9 +279,19 @@ let rec typeof ctx tm = match tm with
       let tyT1 = typeof ctx t1 in
       (match tyT1 with
         TyArr (tyT11, tyT12) ->
+          if subtypeof tyT11 tyT12 then tyT12
+          else raise (Type_error "result of body not compatible with domain")
+      | _ -> raise (Type_error "arrow type expected"))
+  (*
+    (* T-Fix *)
+  | TmFix t1 ->
+      let tyT1 = typeof ctx t1 in
+      (match tyT1 with
+        TyArr (tyT11, tyT12) ->
           if tyT11 = tyT12 then tyT12
           else raise (Type_error "result of body not compatible with domain")
       | _ -> raise (Type_error "arrow type expected"))
+  *)
     (* T-String *)
   | TmString _ ->
       TyString
@@ -251,8 +314,17 @@ let rec typeof ctx tm = match tm with
       let bty = typeofTy ctx ty in
       let ty1 = typeof ctx t1 in
       let ty2 = typeof ctx t2 in
+        if (subtypeof ty1 bty) && (subtypeof ty2 (TyList(bty))) then TyList bty    (*Check basic type with type from constructor and check same type for following values, List of basic type*)
+        else raise (Type_error "cons operands have different types")
+  (*
+    (* T-Cons *)
+  | TmCons (ty, t1, t2) ->
+      let bty = typeofTy ctx ty in
+      let ty1 = typeof ctx t1 in
+      let ty2 = typeof ctx t2 in
         if ty1 = bty && ty2 = TyList bty then TyList bty    (*Check basic type with type from constructor and check same type for following values, List of basic type*)
         else raise (Type_error "cons operands have different types")
+  *)
     (* T-IsNil *)
   | TmIsNil (ty, t) ->
       let bty = typeofTy ctx ty in
@@ -275,10 +347,49 @@ let rec typeof ctx tm = match tm with
       (match tyT2 with
           | TyVariant l -> 
             (try 
+              if subtypeof tyT1 (List.assoc s l) then tyT2    (*Check that term type matches with expected type*)
+              else raise (Type_error ("type mismatch in variant"))
+            with Not_found -> raise (Type_error ("case " ^ s ^ " not found")))
+      | _ -> raise (Type_error "variant expected"))
+  (*
+    (* T-Variant *)
+  | TmTag (s, t, ty) ->
+      let tyT1 = typeof ctx t in
+      let tyT2 = typeofTy ctx ty in
+      (match tyT2 with
+          | TyVariant l -> 
+            (try 
               if tyT1 = List.assoc s l then tyT2    (*Check that term type matches with expected type*)
               else raise (Type_error ("type mismatch in variant"))
             with Not_found -> raise (Type_error ("case " ^ s ^ " not found")))
       | _ -> raise (Type_error "variant expected"))
+  *)
+    (* T-Case *)
+  | TmCase (t, cases) ->
+      let tyT1 = typeof ctx t in
+      (match tyT1 with
+         TyVariant l -> 
+            let vtags = List.map (function (tag, _) -> tag) l in          (*Get tags from types list*)
+            let ctags = List.map (function (tag, _, _) -> tag) cases in   (*Get tags from cases*)
+            if List.length vtags = List.length ctags && List.for_all (fun tag -> List.mem tag vtags) ctags (*Check that both lists have the same length and all values in cases are included in list of types*)
+            then
+              let (tag1, id1, tm1) = List.hd cases in   (*First case*)
+              let ty1 = List.assoc tag1 l in
+              let ctx1 = addtbinding ctx id1 ty1 in
+              let rty = typeof ctx1 tm1 in  (*Get root type*)
+              let rec aux = function        (*For every value in cases, get its type, include it into the context and compare types with root type*)
+                 [] -> rty
+                | (tagi, idi, tmi) :: rest ->
+                    let tyi = List.assoc tagi l in
+                    let ctxi = addtbinding ctx idi tyi in
+                    let tyi = typeof ctxi tmi in
+                    if subtypeof tyi rty then aux rest
+                    else raise (Type_error "result type mismatch in case")
+              in aux (List.tl cases)
+            else
+              raise (Type_error "variant and cases have different tags")
+        | _ -> raise (Type_error "variant expected"))
+  (*
     (* T-Case *)
   | TmCase (t, cases) ->
       let tyT1 = typeof ctx t in
@@ -304,6 +415,7 @@ let rec typeof ctx tm = match tm with
             else
               raise (Type_error "variant and cases have different tags")
         | _ -> raise (Type_error "variant expected"))
+  *)
     (* T-Proj *)
   | TmProj (t1,s) ->            (*Get corresponding value from tuple/record*)
     match typeof ctx t1 with
