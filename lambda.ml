@@ -124,10 +124,10 @@ let rec string_of_ty ty = match ty with
 exception Type_error of string
 ;;
 
-
+(*Function which operates recursively to determine if one type is a subtype of another type*)
 let rec subtypeof tm1 tm2 = 
   match (tm1, tm2) with
-    (TyRecord(l1), TyRecord(l2)) ->
+    (TyRecord(l1), TyRecord(l2)) ->   (*Checks if each field in tm1 exists in tm2 and if their types are compatible*)
     let check (x, ty) l =
       try 
         subtypeof ty (List.assoc x l)
@@ -137,7 +137,7 @@ let rec subtypeof tm1 tm2 =
           [] -> true
         | h::t -> check h l2 && contains t l2
     in contains l1 l2
-  | (TyArr(s1, s2), TyArr(t1, t2)) -> subtypeof s1 t1 && subtypeof t2 s2
+  | (TyArr(s1, s2), TyArr(t1, t2)) -> subtypeof s1 t1 && subtypeof t2 s2   (*Checks contravariant compatibility of input types and covariant compatibility of output types*)
   | (tm1, tm2) -> tm1 = tm2
 ;;
 
@@ -173,7 +173,7 @@ let rec subtypeof tm1 tm2 =
 
 *)
 
-
+(*Function which recursively obtains the basic type of some type*)
 let rec typeofTy ctx ty =
   match ty with
       TyBool ->
@@ -246,7 +246,7 @@ let rec typeof ctx tm = match tm with
       let tyT2 = typeof ctx t2 in
       (match tyT1 with
            TyArr (tyT11, tyT12) ->
-             if subtypeof tyT11 tyT2 then tyT12
+             if subtypeof tyT11 tyT2 then tyT12   (*Check if tyT11 is a subtype of tyT2*)
              else raise (Type_error "parameter type mismatch")
          | _ -> raise (Type_error "arrow type expected"))
   (*
@@ -270,7 +270,7 @@ let rec typeof ctx tm = match tm with
       let tyT1 = typeof ctx t1 in
       (match tyT1 with
         TyArr (tyT11, tyT12) ->
-          if subtypeof tyT11 tyT12 then tyT12
+          if subtypeof tyT11 tyT12 then tyT12   (*Check if tyT11 is a subtype of tyT12*)
           else raise (Type_error "result of body not compatible with domain")
       | _ -> raise (Type_error "arrow type expected"))
   (*
@@ -642,17 +642,17 @@ let rec subst x s tm = match tm with
   | TmTag (s1, t, ty) ->    (*Substitute in term from tagging*)
       TmTag (s1, subst x s t, ty)
   | TmCase (t, cases) ->   (* Variants *)
-      let t' = subst x s t in
-      let cases' = List.map (fun (tag, v, case) ->
+      let t' = subst x s t in   (*Substitute in term after "case"*)
+      let cases' = List.map (fun (tag, v, case) ->    (*for each case apply subst*)
         if v = x then
           (tag, v, case)
         else
           let fvs = free_vars s in
-          if not (List.mem v fvs) then
+          if not (List.mem v fvs) then   (*If 'v' is not in 's', safely substitute 's' for 'x'*)
             (tag, v, subst x s case)
           else
-            let z = fresh_name v (free_vars case @ fvs) in
-            (tag, z, subst x s (subst v (TmVar z) case))
+            let z = fresh_name v (free_vars case @ fvs) in  (*Generate a fresh name 'z'*)
+            (tag, z, subst x s (subst v (TmVar z) case))   (*Replace 'v' with 'z', then substitute 's' for 'x' in the modified case. *)
       ) cases in
       TmCase (t', cases')
 ;;
@@ -672,8 +672,8 @@ let rec isval tm = match tm with
   | TmRecord l -> List.for_all (fun t -> isval t) (List.map snd l)  (*Check if every value in each pair from record is valid*)
   | TmNil _ -> true        (*Nil is always a value*)
   | TmCons(_,h,t) -> isval h && isval t (*Check both terms are values*)
-  | TmTag(_, t, _) -> isval t
-  | TmCase(t, cases) -> isval t && List.for_all (fun (_, _, t_case) -> isval t_case) cases 
+  | TmTag(_, t, _) -> isval t (*Check if the term in tagging is a value*)
+  | TmCase(t, cases) -> isval t && List.for_all (fun (_, _, t_case) -> isval t_case) cases (*Check if term after "case" is a value and for each term afer => check if it is a value*)
   | t when isnumericval t -> true   (*Numericals are values*)
   | _ -> false
 ;;
@@ -811,12 +811,11 @@ let rec eval1 ctx tm = match tm with
       TmTag (s, t', ty)
     (* E-Case *)
   | TmCase (TmTag (s, v, ty), cases) when isval v ->
-      let rec find_case = function
+      let rec aux = function
       | [] -> raise NoRuleApplies
-      | (tag, var, body) :: rest when tag = s ->
-          subst var v body
-      | _ :: rest -> find_case rest
-    in find_case cases
+      | (t, var, b) :: rest when t = s -> subst var v b   (*Apply subst when t maches s from case*)
+      | _ :: rest -> aux rest
+    in aux cases
     (* E-Case2 *)
   | TmCase (t, cases) ->
       let t' = eval1 ctx t in
