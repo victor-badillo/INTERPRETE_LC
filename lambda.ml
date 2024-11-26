@@ -641,18 +641,18 @@ let rec subst x s tm = match tm with
       TmTail (ty, (subst x s t))
   | TmTag (s1, t, ty) ->    (*Substitute in term from tagging*)
       TmTag (s1, subst x s t, ty)
-  | TmCase (t, cases) ->   (* Variants *)
+  | TmCase (t, cases) -> 
       let t' = subst x s t in   (*Substitute in term after "case"*)
-      let cases' = List.map (fun (tag, v, case) ->    (*for each case apply subst*)
+      let cases' = List.map (fun (tag, v, case) ->    (*For each case apply subst*)
         if v = x then
           (tag, v, case)
         else
           let fvs = free_vars s in
-          if not (List.mem v fvs) then   (*If 'v' is not in 's', safely substitute 's' for 'x'*)
+          if not (List.mem v fvs) then   (*If v is not in s, safely substitute*)
             (tag, v, subst x s case)
           else
-            let z = fresh_name v (free_vars case @ fvs) in  (*Generate a fresh name 'z'*)
-            (tag, z, subst x s (subst v (TmVar z) case))   (*Replace 'v' with 'z', then substitute 's' for 'x' in the modified case. *)
+            let z = fresh_name v (free_vars case @ fvs) in  (*Create new name for variable which is not in s nor in case*)
+            (tag, z, subst x s (subst v (TmVar z) case))    (*Substitute with new name*)
       ) cases in
       TmCase (t', cases')
 ;;
