@@ -635,3 +635,62 @@ Table of Contents:
 
 
 2.8 Subtyping
+
+    In this final section, subtyping has been incorporated by creating a function that implements subtype 
+    polymorphism for records and functions. To achieve this, the general type-checking function has been 
+    reimplemented to use this form of polymorphism wherever applicable.
+
+    This new function for verifying subtyping has been named subtypeof and has been included in lambda.ml.
+    It determines if one type (tm1) is a subtype of another (tm2) by recursively analyzing their structure. 
+    For record types, it ensures all fields in tm1 exist in tm2 with compatible types. For function types, 
+    it enforces contravariance on input types and covariance on output types. In all other cases, it checks 
+    for type equality. This function is crucial for supporting flexible and type-safe operations, especially 
+    when working with complex type structures like records or functions.
+
+    Additionally, three lambda expressions that involve subtyping operations were included in examples.txt.
+    Those three examples and some other examples are provided to show some results.
+
+    Examples:
+
+    {};;
+    - : {} = {}
+
+    let
+        idr = lambda r : {}. r
+    in
+        idr {i=5, j=10}
+    ;;
+    - : {} = {i = 5, j = 10}
+
+    (lambda r : {i : Nat}. r.i) {i=0, j=true};;
+    - : Nat = 0
+
+    (lambda r : {x : Nat}. r.x) {x=10, y=true, z="underwater"};;
+    - : Nat = 10
+
+    (lambda r : {x : Nat, y : Bool}. {r.x, r.y}) {x=10, y=true, z="extra"};;
+    - : {Nat, Bool} = {10, true}
+
+    (lambda r : {x : Nat, y : Bool}. r.x) {y=true, x=10, z="extra"};;
+    - : Nat = 10
+
+    let
+        f = lambda r : {x : Nat, y : Bool}. {x=r.x}
+    in
+      let
+        apply = lambda g : ({x : Nat} -> {x : Nat}). g {x=10, y=true}
+    in
+        apply f
+    ;;
+    - : {x : Nat} = {x = 10}
+
+    (lambda r : {x : Nat, y : Bool}. r.x) {x=10};;
+    type error: parameter type mismatch
+
+    let
+        apply_to_x = lambda f : {x : Nat} -> Nat.
+            f {x=7, y=true}
+    in
+        apply_to_x (lambda r : {x : Nat, y : Bool}. r.x)
+    ;;
+    - : Nat = 7

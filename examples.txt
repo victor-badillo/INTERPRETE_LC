@@ -123,16 +123,10 @@ letrec map : (Nat -> Nat) -> List[Nat] -> List[Nat] =
 ;;
 (lambda r : {x : Nat}. r.x) {x=10, y=true, z="underwater"};;
 let
-  check_zero = lambda i : <zero : Bool, other : Nat>.
-    case i of
-      <zero=z> => z
-    | <other=o> => false
-in
-  check_zero (<zero=true> as <zero : Bool, other : Nat, extra : String>)
-;;
-let
-  apply_to_x = lambda f : {x : Nat} -> Nat.
-    f {x=42, y=true}
-in
-  apply_to_x (lambda r : {x : Nat, y : Bool}. r.x)
+  f = lambda r : {x : Nat, y : Bool}. {x=r.x}
+  in
+    let
+      apply = lambda g : ({x : Nat} -> {x : Nat}). g {x=10, y=true}
+  in
+      apply f
 ;;
