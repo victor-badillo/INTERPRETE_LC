@@ -390,6 +390,143 @@ Table of Contents:
 
 2.6 Variants
 
+    To include variants in this lambda calculus interpreter, specific tokens for variants were added. These tokens are <, >, |, as, 
+    =>, case, and of. Once the variant tokens are recognized, specific rules can be created for them. These rules, included in the 
+    parser, add the variant tagging case and the case expression to the term definition. For the case expression, an additional rule,
+    variantCases, has been created. This rule operates with VariantCases, which is responsible for storing each variant case as a 
+    tuple of three elements: the tag, the variable, and the body, in a list.
+    
+    Of course, the new type for variants has been included, registering the types in the same way as for records, using a list of 
+    pairs with an identifier and a type.
+
+    At this point, the new types and terms were added to lambda.mli and lambda.ml. In lambda.ml, the necessary functions were modified 
+    to accommodate the new type (such as typeof, typeofTy, eval1, etc.). It is worth noting that in this interpreter, when associating 
+    a variable with a variant value, the value is not automatically associated with the variant's type. Therefore, we must explicitly 
+    specify the variant's type using as followed by the type.
+
+    Since there is no wildcard, all values of the cases must be explicitly named. For the same reason, it is not possible to create 
+    cases where one returns a value for a specific case and uses the wildcard for the rest of the cases.
+
+    Another clarification is that in the bodies of each case, to ensure proper syntactic analysis, the body is parenthesized if it 
+    contains more than just a simple value.
+    
+    The following examples are provided, highlighting the add function of type Int -> Int -> Int, which implements integer addition for 
+    this data type. This add function was included in the examples.txt file.
+
+    Examples:
+
+    Int = <pos:Nat, zero:Bool, neg:Nat>;;
+    type Int = <pos : Nat, zero : Bool, neg : Nat>
+
+    p3 = <pos=3> as Int;;
+    p3 : <pos : Nat, zero : Bool, neg : Nat> = <pos = 3>
+
+    z0 = <zero=true> as Int;;
+    z0 : <pos : Nat, zero : Bool, neg : Nat> = <zero = true>
+
+    n5 = <neg=5> as Int;;
+    n5 : <pos : Nat, zero : Bool, neg : Nat> = <neg = 5>
+
+    is_zero = L i : Int.
+        case i of
+          <pos=p> => false
+        | <zero=z> => true
+        | <neg=n> => false
+    ;;
+
+    is_zero p3;;
+    - : Bool = false
+
+    is_zero z0;;
+    - : Bool = true
+
+    is_zero n5;;
+    - : Bool = false
+
+    abs = L i : Int.
+        case i of
+          <pos=p> => (<pos=p> as Int)
+        | <zero=z> => (<zero=true> as Int)
+        | <neg=n> => (<pos=n> as Int)
+    ;;
+
+    abs p3;;
+    - : <pos : Nat, zero : Bool, neg : Nat> = <pos = 3>
+
+    abs z0;;
+    - : <pos : Nat, zero : Bool, neg : Nat> = <zero = true>
+
+    abs n5;;
+    - : <pos : Nat, zero : Bool, neg : Nat> = <pos = 5>
+
+    sum =
+        letrec sum : Nat -> Nat -> Nat =
+            lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m)
+        in
+            sum
+    ;;
+
+    add = 
+      letrec add : Int -> Int -> Int =
+       lambda i1 : Int. lambda i2 : Int.
+        case i1 of
+        <zero=z1> => i2
+
+        | <pos=p1> => 
+            (case i2 of
+                <zero=z2> => i1
+            | <pos=p2> => (<pos=sum p1 p2> as Int)
+            | <neg=n2> => 
+                (
+                if iszero p1 then
+                if iszero n2 then 
+                    <zero=true> as Int
+                else
+                    <neg=n2> as Int
+                else
+                if iszero n2 then
+                    <pos=p1> as Int 
+                else
+                    add (<pos=pred p1> as Int) (<neg=pred n2> as Int)
+                )
+            )
+
+        | <neg=n1> => 
+            (case i2 of
+                <zero=z2> => i1
+            | <neg=n2> => (<neg=sum n1 n2> as Int)
+            | <pos=p2> =>
+            (
+                if iszero n1 then
+                if iszero p2 then
+                    <zero=true> as Int
+                else
+                    <pos=p2> as Int
+                else
+                if iszero p2 then
+                    <neg=n1> as Int
+                else
+                    add (<neg=pred n1> as Int) (<pos=pred p2> as Int)
+                    )
+            )
+            in add
+    ;;
+
+    add (<neg=4> as Int) (<neg=3> as Int);;
+    - : <pos : Nat, zero : Bool, neg : Nat> = <neg = 7>
+
+    add (<pos=3> as Int) (<neg=3> as Int);;
+    - : <pos : Nat, zero : Bool, neg : Nat> = <zero = true>
+
+    add (<pos=5> as Int) (<neg=2> as Int);;
+    - : <pos : Nat, zero : Bool, neg : Nat> = <pos = 3>
+
+    add (<zero=true> as Int) (<neg=3> as Int);;
+    - : <pos : Nat, zero : Bool, neg : Nat> = <neg = 3>
+
+    add (<neg=7> as Int) (<pos=10> as Int);;
+    - : <pos : Nat, zero : Bool, neg : Nat> = <pos = 3>
+
 
 2.7 Lists
 
