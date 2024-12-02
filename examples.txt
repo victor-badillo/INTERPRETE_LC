@@ -121,7 +121,8 @@ letrec map : (Nat -> Nat) -> List[Nat] -> List[Nat] =
   in
     map f l
 ;;
-(lambda r : {x : Nat}. r.x) {x=10, y=true, z="underwater"};;
+(lambda r : {x : Nat}. r.x) {x=10, y=true, z="underwater"}
+;;
 let
   f = lambda r : {x : Nat, y : Bool}. {x=r.x}
   in
