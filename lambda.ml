@@ -562,7 +562,7 @@ let rec subst x s tm = match tm with
       if y = x then TmLetIn (y, subst x s t1, t2)   (*Substitue in t1 and not in t2 when variable from let is equal to substituting variable*)
       else let fvs = free_vars s in
            if not (List.mem y fvs)
-           then TmLetIn (y, subst x s t1, subst x s t2)   (*Directo substitution if y does not belong to free vars*)
+           then TmLetIn (y, subst x s t1, subst x s t2)   (*Direct substitution if y does not belong to free vars*)
            else let z = fresh_name y (free_vars t2 @ fvs) in                (*Create new name which is not in s nor in t2*)
                 TmLetIn (z, subst x s t1, subst x s (subst y (TmVar z) t2)) (*Substitute with new name*)
   | TmFix t -> 
