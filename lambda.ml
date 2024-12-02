@@ -141,38 +141,6 @@ let rec subtypeof tm1 tm2 =
   | (tm1, tm2) -> tm1 = tm2
 ;;
 
-(* FUNCION DE SUBTIPADO MEJOR, list.assoc_opt para la falta de claves en registros y variantes, longitud de las tuplas con List.for_all2, subtipado de variantes flexible pero robusto
-let rec subtypeof tm1 tm2 = 
-  match (tm1, tm2) with
-    (TyRecord(l1), TyRecord(l2)) ->
-      let check (x, ty) l =
-        match List.assoc_opt x l with
-        | Some ty2 -> subtypeof ty ty2
-        | None -> false
-      in
-      let rec contains l1 l2 = 
-        match l1 with
-            [] -> true
-          | (x, ty) :: t -> check (x, ty) l2 && contains t l2
-      in
-      contains l1 l2
-  | (TyArr(s1, s2), TyArr(t1, t2)) -> subtypeof s1 t1 && subtypeof s2 t2
-  | TyTuple l1, TyTuple l2 -> 
-      if List.length l1 = List.length l2 then
-        List.for_all2 subtypeof l1 l2
-      else
-        false
-  | TyVariant v1, TyVariant v2 ->
-      List.for_all (fun (l1, t1) ->
-        match List.assoc_opt l1 v2 with
-        | Some t2 -> subtypeof t1 t2
-        | None -> false
-      ) v1
-  | (tm1, tm2) -> tm1 = tm2
-;;
-
-*)
-
 (*Function which recursively obtains the basic type of some type*)
 let rec typeofTy ctx ty =
   match ty with
@@ -249,17 +217,6 @@ let rec typeof ctx tm = match tm with
              if subtypeof tyT11 tyT2 then tyT12   (*Check if tyT11 is a subtype of tyT2*)
              else raise (Type_error "parameter type mismatch")
          | _ -> raise (Type_error "arrow type expected"))
-  (*
-    (* T-App *)
-  | TmApp (t1, t2) ->
-      let tyT1 = typeof ctx t1 in
-      let tyT2 = typeof ctx t2 in
-      (match tyT1 with
-           TyArr (tyT11, tyT12) ->
-             if tyT2 = tyT11 then tyT12
-             else raise (Type_error "parameter type mismatch")
-         | _ -> raise (Type_error "arrow type expected"))
-  *)
     (* T-Let *)
   | TmLetIn (x, t1, t2) ->
       let tyT1 = typeof ctx t1 in
@@ -270,19 +227,9 @@ let rec typeof ctx tm = match tm with
       let tyT1 = typeof ctx t1 in
       (match tyT1 with
         TyArr (tyT11, tyT12) ->
-          if subtypeof tyT11 tyT12 then tyT12   (*Check if tyT11 is a subtype of tyT12*)
-          else raise (Type_error "result of body not compatible with domain")
-      | _ -> raise (Type_error "arrow type expected"))
-  (*
-    (* T-Fix *)
-  | TmFix t1 ->
-      let tyT1 = typeof ctx t1 in
-      (match tyT1 with
-        TyArr (tyT11, tyT12) ->
           if tyT11 = tyT12 then tyT12
           else raise (Type_error "result of body not compatible with domain")
       | _ -> raise (Type_error "arrow type expected"))
-  *)
     (* T-String *)
   | TmString _ ->
       TyString
@@ -370,6 +317,7 @@ let rec typeof ctx tm = match tm with
 
 (* TERMS MANAGEMENT (EVALUATION) *)
 
+(*Function for printting the output nicely. Uses boxes from Format module*)
 let rec pretty_printer n = match n with
   | TmAbs (s, tyS, t) ->
       open_hvbox 1;
@@ -458,11 +406,11 @@ and string_of_appTerm t = match t with
       print_string(")")
   | TmNil ty -> print_string("nil[" ^string_of_ty ty ^ "]");
   | TmCons (ty,h,t) -> 
-    let aux acc = function
+    let aux = function
           TmNil _ -> print_string("cons[" ^ string_of_ty ty ^ "]"); print_space(); pretty_printer h; print_space(); pretty_printer t;
         | TmCons (_, subh, subt) -> print_string("cons[" ^ string_of_ty ty ^ "] ");  pretty_printer h; print_space(); print_string("("); pretty_printer t; print_string(")") 
         | _ -> raise (Failure "invalid pattern in TmCons aux function")(*esta bien?*)
-      in aux [] t
+      in aux t
   | TmIsNil (ty,t) -> print_string("isnil[" ^ string_of_ty ty ^ "]"); print_space(); print_string("("); pretty_printer t; print_string(")") 
   | TmHead (ty,t) -> print_string("head[" ^ string_of_ty ty ^ "]"); print_space(); print_string("("); pretty_printer t; print_string(")") 
   | TmTail (ty,t) -> print_string("tail[" ^ string_of_ty ty ^ "]"); print_space(); print_string("(");  pretty_printer t; print_string(")")
