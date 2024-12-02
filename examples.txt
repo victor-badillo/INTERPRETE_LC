@@ -131,3 +131,5 @@ let
   in
       apply f
 ;;
+(lambda r : {x : Nat, y : Bool}. {r.x, r.y}) {x=10, y=true, z="extra"}
+;;
