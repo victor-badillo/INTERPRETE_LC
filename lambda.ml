@@ -363,7 +363,7 @@ let rec pretty_printer n = match n with
           ) else print_string "  ";
           print_string ("<" ^ label ^ " = " ^ var ^ "> => ");
           print_space ();
-          pretty_printer body;
+          string_of_atomicTerm body;
         )
         cases;
       close_box ()
