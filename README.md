@@ -11,4 +11,4 @@ A simple Lambda Calculus Interpreter with the following features:
     Variants & Lists: Work with variant types and lists.
     Subtyping: Handle different types with flexibility.
 
-Final Grade: 11/10
+Final Grade: 10/10
